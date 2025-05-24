@@ -1,3 +1,16 @@
+Version: 1.0.3
+Date: 23.05.2025
+  Bugfixes:
+    - Fixed crash on startup without Space Age.
+
+---------------------------------------------------------------------------------------------------
+Version: 1.0.2
+Date: 22.05.2025
+  Bugfixes:
+    - Added optional dependencies
+	- Fixed crash on start when mods add new science packs. Progression is still not working unless explicitly added.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 21.05.2025
   Minor Features:

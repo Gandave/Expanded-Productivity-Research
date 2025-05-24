@@ -1,6 +1,6 @@
 {
 	"name": "ExpandedProductivityResearch",
-	"version": "1.0.1",
+	"version": "1.0.3",
 	"title": "Expanded Productivity Research",
 	"author": "Gandave",
 	"factorio_version": "2.0",
@@ -9,7 +9,9 @@
 		"(?) space-age",
 		"(?) space_age_galore",
 		"(?) vanilla_galore_continued",
-		"(?) More-Asteroid-Resources-Forked"
+		"(?) More-Asteroid-Resources-Forked",
+		"(?) Moshine",
+		"(?) secretas"
 	],
 	"description": "Adds Productivity technologies for all intermediate recipes, grouped by output item, with a progression similar to mining productivity. Optionally adjusts existing techs' progression."
 }

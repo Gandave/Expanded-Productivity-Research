@@ -54,7 +54,7 @@ EPR.setting = {
 		["item"] = settings.startup[EPR.prefix("skip_utility")].value,
 		["science_pack"] = settings.startup[EPR.prefix("skip_utility_science")].value
 	},
-	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")].value
+	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")] and settings.startup[EPR.prefix("adjust_existing_techs")].value or false
 }
 
 EPR.convertRecipeCategoryToAdvancedSciencePack = {
@@ -253,7 +253,6 @@ function EPR.adjustProductivityTechnology(technology)
 						next_tech.unit.count_formula = nil
 					end
 
-log(EPR.toString(next_tech, "next_tech"))
 					table.insert(additional_techs, next_tech)
 				end
 			end
@@ -381,20 +380,24 @@ function EPR.getHighestSciencePack(science_pack_list)
 	end
 
 	local result
+	local result_level
 	for key, val in pairs(science_pack_list) do
 		if key and val then
-			if not result then
-				result = key
-			elseif type(result) == "table" then
-				if EPR.getTechLevelFromSciencePack[result[1]] == EPR.getTechLevelFromSciencePack[key] then
-					table.insert(result, key)
-				elseif EPR.getTechLevelFromSciencePack[result[1]] < EPR.getTechLevelFromSciencePack[key] then
+			local key_level = EPR.getTechLevelFromSciencePack[key]
+			if key_level then
+				if not result_level then
 					result = key
+					result_level = EPR.getTechLevelFromSciencePack[key]
+				elseif result_level == key_level then
+					if type(result) == "table" then
+						table.insert(result, key)
+					else
+						result = { result, key }
+					end
+				elseif result_level < key_level then
+					result = key
+					result_level = key_level
 				end
-			elseif EPR.getTechLevelFromSciencePack[result] == EPR.getTechLevelFromSciencePack[key] then
-				result = { result, key }
-			elseif EPR.getTechLevelFromSciencePack[result] < EPR.getTechLevelFromSciencePack[key] then
-				result = key
 			end
 		end
 	end
@@ -403,45 +406,50 @@ function EPR.getHighestSciencePack(science_pack_list)
 end
 
 function EPR.getPrerequisites(lowest_tech, highest_science_pack)
-	local result = {}
-
 	if lowest_tech then
-		if type(highest_science_pack) == "table" then
-			local done = false
+		if not highest_science_pack then
+			return { lowest.name }
+		elseif type(highest_science_pack) == "table" then
 			for _, pack in pairs(highest_science_pack) do
-				if not done and EPR.isTechPrerequisite(lowest_tech, data.raw["technology"][pack]) then
+				local result = {}
+				if EPR.isTechPrerequisite(lowest_tech, data.raw["technology"][pack]) then
 					for _, val in pairs(highest_science_pack) do
 						table.insert(result, val)
 					end
-					done = true
+					return result
 				end
 			end
-			if not done then
-				result = { lowest_tech.name }
-				for _, val in pairs(highest_science_pack) do
-					if not EPR.isTechPrerequisite(val, lowest_tech) then
-						table.insert(result, val)
-					end
+
+			local result = { lowest_tech.name }
+			for _, val in pairs(highest_science_pack) do
+				if not EPR.isTechPrerequisite(val, lowest_tech) then
+					table.insert(result, val)
 				end
 			end
+			return result
 		else
 			if EPR.isTechPrerequisite(data.raw["technology"][highest_science_pack], lowest_tech) then
-				result = { lowest_tech.name }
+				return { lowest_tech.name }
 			else
-				result = { highest_science_pack, lowest_tech.name }
+				return { highest_science_pack, lowest_tech.name }
 			end
 		end
 	else
+		if not highest_science_pack then
+			return nil
+		end
 		if type(highest_science_pack) == "table" then
+			local result = {}
 			for _, val in pairs(highest_science_pack) do
 				table.insert(result, val)
 			end
+			return result
 		else
-			result = { highest_science_pack }
+			return { highest_science_pack }
 		end
 	end
 
-	return result
+	return nil
 end
 
 function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, blacklist_recipe)
@@ -588,6 +596,11 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 	end
 
 	local ingredients = EPR.getIngredients(tech_level)
+	if not EPR.hasValidLab(ingredients) then
+		log("> EPR: no valid lab found for "..EPR.prefix(item.name.."-productivity-"..level))
+		return nil
+	end
+
 	local unit = {ingredients = ingredients, time = 60}
 	if final then
 		unit["count_formula"] = EPR.setting["formula_factor"][EPR.getItemType(item)].."^(L-"..(noOfTechs - 1)..")*"..EPR.setting["formula_base"][EPR.getItemType(item)]
@@ -649,4 +662,28 @@ function EPR.getItemType(item)
 	end
 
 	return item.type == "tool" and "science_pack" or "item"
+end
+
+function EPR.hasValidLab(ingredients)
+	if not ingredients then
+		return false
+	end
+
+	for key, lab in pairs(data.raw["lab"]) do
+		if lab and lab.inputs then
+			local compatible = true
+			for _, ingr in pairs(ingredients) do
+				local found = false
+				for _, input in pairs(lab.inputs) do
+					found = found or input == ingr[1]
+				end
+				compatible = compatible and found
+			end
+			if compatible then
+				return true
+			end
+		end
+	end
+
+	return false
 end
