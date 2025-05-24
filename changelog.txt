@@ -1,0 +1,10 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.0.0
+Date: 18.05.2025
+  Features:
+    - Automatically scans for existing productivity research (not sure about modded technologies, however).
+	- Automatically scans for recipes that allow productivity.
+	- Creates new technologies for items with productivity for all their recipes with a progression similar to mining productivity.
+	- Progression can be configured in the settings.
+	- Progression can also be applied to already existing productivity technologies.
+	- Science packs use a separate progression track.
