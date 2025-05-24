@@ -94,6 +94,7 @@ EPR.constSciencePacks = {
 	["production-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true },
 	["utility-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true },
 	["space-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true },
+	["one-planetary-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true },
 	["any-planetary-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true },
 	["all-planetary-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true, ["metallurgic-science-pack"] = true, ["electromagnetic-science-pack"] = true, ["agricultural-science-pack"] = true, ["cryogenic-science-pack"] = true },
 	["promethium-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true, ["metallurgic-science-pack"] = true, ["electromagnetic-science-pack"] = true, ["agricultural-science-pack"] = true, ["cryogenic-science-pack"] = true, ["promethium-science-pack"] = true }
@@ -186,7 +187,8 @@ function EPR.adjustProductivityTechnology(technology)
 				table.insert(recipes, recipe)
 				local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
 				if sp then
-					special_science_packs[sp] = true
+					local current = (special_science_packs[sp] or 0) + 1
+					special_science_packs[sp] = current
 				end
 			end
 		end
@@ -339,7 +341,8 @@ function EPR.getTechLevels(item, lowest_tech, special_science_packs)
 	end
 
 	-- add last level if needed
-	if EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "any-planetary-science"
+	if (EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "one-planetary-science"
+		or EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "any-planetary-science")
 			and not current_science_packs["metallurgic-science-pack"]
 			and not current_science_packs["electromagnetic-science-pack"]
 			and not current_science_packs["agricultural-science-pack"]
@@ -347,13 +350,17 @@ function EPR.getTechLevels(item, lowest_tech, special_science_packs)
 
 		-- need to add one last level with one of the planetary packs
 		if next(special_science_packs) ~= nil then
-			for key, val in pairs(special_science_packs) do
-				if val then
-					current_science_packs[key] = true
+			if EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "one-planetary-science" then
+				current_science_packs[EPR.getHighestKey(special_science_packs)] = true
+			else
+				for key, val in pairs(special_science_packs) do
+					if val then
+						current_science_packs[key] = true
+					end
 				end
 			end
+			table.insert(tech_levels, table.deepcopy(current_science_packs))
 		end
-		table.insert(tech_levels, table.deepcopy(current_science_packs))
 	end
 
 	return tech_levels
@@ -412,7 +419,7 @@ function EPR.getPrerequisites(lowest_tech, highest_science_pack)
 		elseif type(highest_science_pack) == "table" then
 			for _, pack in pairs(highest_science_pack) do
 				local result = {}
-				if EPR.isTechPrerequisite(lowest_tech, data.raw["technology"][pack]) then
+				if EPR.isTechPrerequisite(lowest_tech, data.raw["technology"][pack]) or lowest_tech.name == pack then
 					for _, val in pairs(highest_science_pack) do
 						table.insert(result, val)
 					end
@@ -422,13 +429,13 @@ function EPR.getPrerequisites(lowest_tech, highest_science_pack)
 
 			local result = { lowest_tech.name }
 			for _, val in pairs(highest_science_pack) do
-				if not EPR.isTechPrerequisite(val, lowest_tech) then
+				if not EPR.isTechPrerequisite(val, lowest_tech) and lowest_tech.name ~= val then
 					table.insert(result, val)
 				end
 			end
 			return result
 		else
-			if EPR.isTechPrerequisite(data.raw["technology"][highest_science_pack], lowest_tech) then
+			if EPR.isTechPrerequisite(data.raw["technology"][highest_science_pack], lowest_tech) or highest_science_pack == lowest_tech.name then
 				return { lowest_tech.name }
 			else
 				return { highest_science_pack, lowest_tech.name }
@@ -518,7 +525,8 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 							itemList[item_name] = { recipes = { recipe }, effects = { effect }, special_packs = {} }
 						end
 						if sp then
-							itemList[item_name].special_packs[sp] = true
+							local current = (itemList[item_name].special_packs[sp] or 0) + 1
+							itemList[item_name].special_packs[sp] = current
 						end
 						finished = true
 					else
@@ -686,4 +694,21 @@ function EPR.hasValidLab(ingredients)
 	end
 
 	return false
+end
+
+function EPR.getHighestKey(list)
+	if not list then
+		return nil
+	end
+
+	local max_key
+	local max_value = 0
+	for key, val in pairs(list) do
+		if val and val > max_value then
+			max_key = key
+			max_value = val
+		end
+	end
+
+	return max_key
 end

@@ -13,10 +13,11 @@ local default_max_science = "space-science"
 local default_skip_utility = false
 
 if mods["space-age"] then
+	table.insert(science_packs, "one-planetary-science")
 	table.insert(science_packs, "any-planetary-science")
 	table.insert(science_packs, "all-planetary-science")
 	table.insert(science_packs, "promethium-science")
-	default_max = "any-planetary-science"
+	default_max = "one-planetary-science"
 	default_max_science = "promethium-science"
 	default_skip_utility = true
 end
