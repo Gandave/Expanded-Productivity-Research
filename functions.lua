@@ -244,15 +244,16 @@ function EPR.adjustProductivityTechnology(technology)
 					next_tech.unit.ingredients = ingredients
 
 					if final then
-						next_tech.maximum_level = maximum_level
+						next_tech.max_level = maximum_level
 						next_tech.unit.count = nil
 						next_tech.unit.count_formula = EPR.setting["formula_factor"]["item"].."^(L-"..(#tech_levels - 1)..")*"..EPR.setting["formula_base"]["item"]
 					else
-						next_tech.maximum_level = nil
+						next_tech.max_level = nil
 						next_tech.unit.count = math.max(math.floor(EPR.setting["formula_factor"]["item"] * EPR.setting["formula_base"]["item"] * idx / #tech_levels / 100) * 100, 10)
 						next_tech.unit.count_formula = nil
 					end
 
+log(EPR.toString(next_tech, "next_tech"))
 					table.insert(additional_techs, next_tech)
 				end
 			end
@@ -459,7 +460,8 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 				for _, effect in pairs(tech.effects) do
 					if effect and effect.type == "change-recipe-productivity" and effect.recipe then
 						table.insert(exclude_recipe, effect.recipe)
-						table.insert(existing_prod_techs, tech)
+						existing_prod_techs[tech.name] = true
+						-- table.insert(existing_prod_techs, tech)
 					end
 				end
 			end
@@ -554,7 +556,8 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 
 	if EPR.setting["adjust_existing_techs"] then
 		log("# EPR: adjusting existing technologies to same progression")
-		for _, tech in pairs(existing_prod_techs) do
+		for key, _ in pairs(existing_prod_techs) do
+			local tech = data.raw["technology"][key]
 			if tech then
 				log("> EPR: adjusting "..tostring(tech.name))
 				EPR.adjustProductivityTechnology(tech)
