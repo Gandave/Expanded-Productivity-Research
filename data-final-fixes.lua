@@ -5,6 +5,7 @@ local blacklist_techs = {} -- none needed so far
 local blacklist_item = {
 	"jellynut-seed", "yumako-seed", -- so that the plant processing recipes show jelly/mash rather than seeds
 	"ice",
+	"uranium-238",
 }
 local blacklist_fluid = { "water", "steam" }
 local blacklist_recipe = {

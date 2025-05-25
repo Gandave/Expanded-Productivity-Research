@@ -58,11 +58,21 @@ EPR.setting = {
 }
 
 EPR.convertRecipeCategoryToAdvancedSciencePack = {
+	["advanced-centrifuging"] = "utility-science-pack",
+	["advanced-centrifuging-or-crafting"] = "utility-science-pack",
+	["advanced-centrifuging-or-crafting-with-fluid"] = "utility-science-pack",
 	["advanced-crafting"] = "metallurgic-science-pack",
+	["advanced-metallurgy"] = "metallurgic-science-pack",
+	["ammunition"] = "metallurgic-science-pack",
+	["biochemistry"] = "agricultural-science-pack",
+	["biochemistry-or-organic"] = "agricultural-science-pack",
+	["biochemistry-or-organic-or-assembling"] = "agricultural-science-pack",
+	["biochemistry-or-organic-or-hand-crafting"] = "agricultural-science-pack",
 	["captive-spawner-process"] = "agricultural-science-pack",
 	["centrifuging"] = "utility-science-pack",
 	["chemistry"] = "cryogenic-science-pack",
 	["chemistry-or-cryogenics"] = "cryogenic-science-pack",
+	["core-mining"] = "metallurgic-science-pack",
 	["crafting"] = "utility-science-pack",
 	["crafting-with-fluid"] = "utility-science-pack",
 	["crafting-with-fluid-or-metallurgy"] = "metallurgic-science-pack",
@@ -73,17 +83,37 @@ EPR.convertRecipeCategoryToAdvancedSciencePack = {
 	["electronics"] = "electromagnetic-science-pack",
 	["electronics-or-assembling"] = "electromagnetic-science-pack",
 	["electronics-with-fluid"] = "electromagnetic-science-pack",
+	["hydraulics"] = "cryogenic-science-pack",
+	["hydraulics-or-chemistry"] = "cryogenic-science-pack",
+	["hydraulics-or-chemistry-or-cryogenics"] = "cryogenic-science-pack",
+	["hydraulics-or-organic"] = "agricultural-science-pack",
 	["metallurgy"] = "metallurgic-science-pack",
 	["metallurgy-or-assembling"] = "metallurgic-science-pack",
+	["metallurgy-or-cryogenics"] = "metallurgic-science-pack",
 	["oil-processing"] = "agricultural-science-pack",
 	["organic"] = "agricultural-science-pack",
 	["organic-or-assembling"] = "agricultural-science-pack",
 	["organic-or-chemistry"] = "agricultural-science-pack",
 	["organic-or-hand-crafting"] = "agricultural-science-pack",
+	["petrochemistry"] = "cryogenic-science-pack",
+	["petrochemistry-or-chemistry"] = "agricultural-science-pack",
+	["petrochemistry-or-chemistry-or-cryogenics"] = "cryogenic-science-pack",
+	["petrochemistry-or-organic-or-assembling"] = "agricultural-science-pack",
+	["petrochemistry-or-organic-or-chemistry"] = "agricultural-science-pack",
+	["pressing"] = "metallurgic-science-pack",
+	["quantum-assembling-or-crafting"] = "utility-science-pack",
+	["quantum-assembling-or-crafting-with-fluid"] = "utility-science-pack",
 	["recycling"] = "electromagnetic-science-pack",
 	["recycling-or-hand-crafting"] = "electromagnetic-science-pack",
 	["rocket-building"] = "cryogenic-science-pack",
-	["smelting"] = "metallurgic-science-pack"
+	["smelting"] = "metallurgic-science-pack",
+	["synthesis"] = "cryogenic-science-pack",
+	["synthesis-or-chemistry"] = "cryogenic-science-pack",
+	["synthesis-or-crafting-with-fluid"] = "cryogenic-science-pack",
+	["synthesis-or-cryogenics-or-chemistry"] = "cryogenic-science-pack",
+	["woodworking"] = "agricultural-science-pack",
+	["woodworking-or-organic"] = "agricultural-science-pack",
+	["woodworking-or-organic-or-assembling"] = "agricultural-science-pack"
 }
 
 EPR.constSciencePacks = {
@@ -169,7 +199,7 @@ function EPR.createIconForItem(item)
 		return icons
 	end
 
-	return {{icon = item.icon, icon_size = 64}, EPR.createProductivityIcon()}
+	return {{icon = item.icon, icon_size = item.icon_size}, EPR.createProductivityIcon()}
 end
 
 function EPR.adjustProductivityTechnology(technology)
@@ -484,6 +514,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	end
 
 	log("# EPR: Scanning recipes #")
+	local categs = {}
 	local itemList = {}
 	for _, recipe in pairs(data.raw["recipe"]) do
 		if recipe and recipe.name
@@ -494,6 +525,15 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 				and recipe.results
 				and recipe.results[1]
 				and recipe.results[1].name then
+			-- collect crafting categories for debug purposes
+			local cat = recipe.category
+			local addcat = true
+			for _, v in pairs(categs) do
+				addcat = addcat and v ~= cat
+			end
+			if addcat then
+				table.insert(categs, cat)
+			end
 			-- check recipe against blacklist
 			local exclude = false
 			for _, r in pairs(exclude_recipe) do
@@ -536,6 +576,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 			end
 		end
 	end
+
+	-- only for debugging
+	-- log(EPR.toString(categs, "EPR: Categories"))
 
 	log("# EPR: Creating technologies #")
 	local new_technologies = {}
@@ -637,10 +680,7 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 		end
 		tech.localised_description = {"technology-description."..EPR.prefix("productivity_tech"), item.localised_name}
 	else
-		local name = {"item-name."..item.name}
-		if item.type == "fluid" then
-			name = {"fluid-name."..item.name}
-		end
+		local name = {"?", {"item-name."..item.name}, {"fluid-name."..item.name}, {"entity-name."..item.name}}
 		if final then
 			tech.localised_name = {"technology-name."..EPR.prefix("productivity_tech_final"), name}
 		else

@@ -14,6 +14,11 @@ Where the mod will struggle is for recipes with multiple "main" products or wher
 
 New science packs or lab types will be ignored by default.
 
+## Fully compatible mods
+- Age of Production
+- Vanilla Galore
+- Space Age Galore
+
 # How it works
 The mod scans all existing recipes that allow productivity and picks the first item as the main product. For each distinct main product, a series of technologies is created which increases the productivity of all recipes with that "main" product.
 
@@ -48,3 +53,7 @@ Use default settings, change both "Minimum required science pack" and "Maximum r
 # Can I update the mod or change settings on an existing save?
 
 Usually, you can update or change settings on an existing save. The exception is if you're currently researching one of the technologies this pack adds or modifies maximum level and have already researched more levels. In both cases I have no idea what will happen. :)
+
+# I encountered an error/I have a suggestion or new idea/Can you add compatibility to X?
+
+Feel free to open a thread on [the mod portal](https://mods.factorio.com/mod/ExpandedProductivityResearch/discussion) or an issue on [github](https://github.com/Gandave/Expanded-Productivity-Research/issues). I try to fix bugs and add optional dependencies as quickly as possible. If it's a major idea or full compatibility with a mod that usually requires more time.
