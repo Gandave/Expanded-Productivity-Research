@@ -138,6 +138,13 @@ data:extend({
 		setting_type = "startup",
 		default_value = false,
 		order = "b[science]c[packs]d"
+	},
+	{
+		type = "bool-setting",
+		name = "epr_verbose",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[debug]a"
 	}
 })
 

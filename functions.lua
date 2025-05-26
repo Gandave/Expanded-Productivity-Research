@@ -54,7 +54,8 @@ EPR.setting = {
 		["item"] = settings.startup[EPR.prefix("skip_utility")].value,
 		["science_pack"] = settings.startup[EPR.prefix("skip_utility_science")].value
 	},
-	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")] and settings.startup[EPR.prefix("adjust_existing_techs")].value or false
+	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")] and settings.startup[EPR.prefix("adjust_existing_techs")].value or false,
+	["verbose"] = settings.startup[EPR.prefix("verbose")].value
 }
 
 EPR.convertRecipeCategoryToAdvancedSciencePack = {
@@ -113,7 +114,8 @@ EPR.convertRecipeCategoryToAdvancedSciencePack = {
 	["synthesis-or-cryogenics-or-chemistry"] = "cryogenic-science-pack",
 	["woodworking"] = "agricultural-science-pack",
 	["woodworking-or-organic"] = "agricultural-science-pack",
-	["woodworking-or-organic-or-assembling"] = "agricultural-science-pack"
+	["woodworking-or-organic-or-assembling"] = "agricultural-science-pack",
+	["muluna-greenhouse"] = "agricultural-science-pack",
 }
 
 EPR.constSciencePacks = {
@@ -219,6 +221,8 @@ function EPR.adjustProductivityTechnology(technology)
 				if sp then
 					local current = (special_science_packs[sp] or 0) + 1
 					special_science_packs[sp] = current
+				elseif EPR.setting["verbose"] then
+					log(EPR.toString(recipe.category,"> EPR: unknown category"))
 				end
 			end
 		end
@@ -551,7 +555,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 					end
 					if not exclude then
 						-- add to item list
-						log("EPR: Adding recipe "..tostring(recipe.name).." to item "..item_name)
+						if EPR.setting["verbose"] then
+							log("EPR: Adding recipe "..tostring(recipe.name).." to item "..item_name)
+						end
 						local effect = {
 							type = "change-recipe-productivity",
 							recipe = recipe.name,
@@ -578,7 +584,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	end
 
 	-- only for debugging
-	-- log(EPR.toString(categs, "EPR: Categories"))
+	if EPR.setting["verbose"] then
+		log(EPR.toString(categs, "EPR: Categories"))
+	end
 
 	log("# EPR: Creating technologies #")
 	local new_technologies = {}
@@ -589,7 +597,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 			local item = EPR.getItem(item_name)
 
 			if item then
-				log("EPR: current item/fluid: "..item_name)
+				if EPR.setting["verbose"] then
+					log("EPR: current item/fluid: "..item_name)
+				end
 
 				-- determine lowest necessary tech and build tech levels based on science pack progression
 				local lowest_tech = EPR.getLowestTechFromRecipes(item_object.recipes)
@@ -598,7 +608,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 				for idx, tech_level in pairs(tech_levels) do
 					local next_tech = EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, idx, #tech_levels)
 					if next_tech then
-						log("> EPR: adding level "..idx.." with "..EPR.toString(tech_level))
+						if EPR.setting["verbose"] then
+							log("> EPR: adding level "..idx.." with "..EPR.toString(tech_level))
+						end
 						table.insert(new_technologies, next_tech)
 					end
 				end
@@ -618,7 +630,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		for key, _ in pairs(existing_prod_techs) do
 			local tech = data.raw["technology"][key]
 			if tech then
-				log("> EPR: adjusting "..tostring(tech.name))
+				if EPR.setting["verbose"] then
+					log("> EPR: adjusting "..tostring(tech.name))
+				end
 				EPR.adjustProductivityTechnology(tech)
 			end
 		end
@@ -626,7 +640,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 end
 
 function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, level, noOfTechs)
-	if not item or not item.name or not item_object or not item_object.effects or not level or level < 1 or not noOfTechs or not tech_level then
+	if not item or not item.name or not item_object or not item_object.effects or not level or level < 1 or not noOfTechs or level > noOfTechs or not tech_level then
 		return nil
 	end
 
@@ -648,7 +662,9 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 
 	local ingredients = EPR.getIngredients(tech_level)
 	if not EPR.hasValidLab(ingredients) then
-		log("> EPR: no valid lab found for "..EPR.prefix(item.name.."-productivity-"..level))
+		if EPR.setting["verbose"] then
+			log("> EPR: no valid lab found for "..EPR.prefix(item.name.."-productivity-"..level))
+		end
 		return nil
 	end
 

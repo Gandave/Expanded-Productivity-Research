@@ -1,3 +1,11 @@
+Version: 1.0.6
+Date: 26.05.2025
+  Minor Features:
+    - Added setting to reduce logging in order to accelerate startup.
+  Bugfixes:
+    - Added Muluna, Moon of Nauvis as optional dependencies to avoid game freezing at start.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.0.5
 Date: 24.05.2025
   Minor Features:

@@ -15,9 +15,17 @@ Where the mod will struggle is for recipes with multiple "main" products or wher
 New science packs or lab types will be ignored by default.
 
 ## Fully compatible mods
-- Age of Production
-- Vanilla Galore
-- Space Age Galore
+- [Age of Production](https://mods.factorio.com/mod/Age-of-Production)
+- [Vanilla Galore Continued](https://mods.factorio.com/mod/vanilla_galore_continued)
+- [Space Age Galore](https://mods.factorio.com/mod/space_age_galore)
+
+## Partial compatibility (i.e., works, but does not make full use of all features) or to be checked
+- [Secretas & Frozeta](https://mods.factorio.com/mod/secretas)
+- [Moshine](https://mods.factorio.com/mod/Moshine)
+- [Muluna, Moon of Nauvis](https://mods.factorio.com/mod/planet-muluna)
+
+## Incompatible
+- none known
 
 # How it works
 The mod scans all existing recipes that allow productivity and picks the first item as the main product. For each distinct main product, a series of technologies is created which increases the productivity of all recipes with that "main" product.
@@ -56,4 +64,6 @@ Usually, you can update or change settings on an existing save. The exception is
 
 # I encountered an error/I have a suggestion or new idea/Can you add compatibility to X?
 
-Feel free to open a thread on [the mod portal](https://mods.factorio.com/mod/ExpandedProductivityResearch/discussion) or an issue on [github](https://github.com/Gandave/Expanded-Productivity-Research/issues). I try to fix bugs and add optional dependencies as quickly as possible. If it's a major idea or full compatibility with a mod that usually requires more time.
+Feel free to open a thread on [the mod portal](https://mods.factorio.com/mod/ExpandedProductivityResearch/discussion) or an issue on [github](https://github.com/Gandave/Expanded-Productivity-Research/issues). Please include a list of active mods (or your mod-list.json) and settings if they differ from default.
+
+I try to fix bugs and add optional dependencies as quickly as possible. If it's a major idea or full compatibility with a mod that usually requires more time.
