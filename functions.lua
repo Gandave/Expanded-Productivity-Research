@@ -132,6 +132,20 @@ EPR.constSciencePacks = {
 	["promethium-science"] = { ["automation-science-pack"] = true, ["logistic-science-pack"] = true, ["military-science-pack"] = true, ["chemical-science-pack"] = true, ["production-science-pack"] = true, ["utility-science-pack"] = true, ["space-science-pack"] = true, ["metallurgic-science-pack"] = true, ["electromagnetic-science-pack"] = true, ["agricultural-science-pack"] = true, ["cryogenic-science-pack"] = true, ["promethium-science-pack"] = true }
 }
 
+EPR.constHighestSciencePacks = {
+	["automation-science"] = "automation-science-pack",
+	["logistic-science"] = "logistic-science-pack",
+	["military-science "] = "military-science-pack",
+	["chemical-science"] = "chemical-science-pack",
+	["production-science"] = "production-science-pack",
+	["utility-science"] = "utility-science-pack",
+	["space-science"] = "space-science-pack",
+	["one-planetary-science"] = nil,
+	["any-planetary-science"] = nil,
+	["all-planetary-science"] = { ["metallurgic-science-pack"] = true, ["electromagnetic-science-pack"] = true, ["agricultural-science-pack"] = true, ["cryogenic-science-pack"] = true },
+	["promethium-science"] = "promethium-science-pack"
+}
+
 EPR.getTechLevelFromSciencePack = {
 	["automation-science-pack"] = 1,
 	["logistic-science-pack"] = 2,
@@ -147,39 +161,84 @@ EPR.getTechLevelFromSciencePack = {
 	["promethium-science-pack"] = 9
 }
 
-function EPR.addMissingSciencePacks(science_packs, tech)
-	if tech.unit and tech.unit.ingredients then -- if tech is regular technology
-		for _, val in pairs(tech.unit.ingredients) do
-			science_packs[val[1]] = true
-		end
-	elseif tech.prerequisites then -- if tech is trigger-technology check prerequisites
-		for _, pre in pairs(tech.prerequisites) do
-			if pre then
-				EPR.addMissingSciencePacks(science_packs, data.raw["technology"][pre])
+function EPR.addMissingPlanetaryScience(current, special, setting)
+	if not current then
+		return nil
+	end
+
+	-- check if needed
+	if (setting == "one-planetary-science"
+		or setting == "any-planetary-science")
+			and not current["metallurgic-science-pack"]
+			and not current["electromagnetic-science-pack"]
+			and not current["agricultural-science-pack"]
+			and not current["cryogenic-science-pack"] then
+
+		-- add level with one or more of the planetary packs
+		if next(special) ~= nil then
+			if setting == "one-planetary-science" then
+				local pack = EPR.getHighestKey(special)
+				current[pack] = true
+				return pack
+			else
+				local packs = {}
+				for key, val in pairs(special) do
+					if val then
+						current[key] = true
+						table.insert(packs, key)
+					end
+				end
+				return packs
 			end
 		end
 	end
+
+	-- nothing added
+	return nil
 end
 
-function EPR.isTechPrerequisite(tech, otherTech)
-	if not tech or not tech.name or not otherTech or not otherTech.name or not otherTech.prerequisites then
-		return false
-	end
-
-	if tech.name == otherTech.name then
-		-- tech = otherTech usually means that the item is a science pack in which case we would otherwise add the technology twice as prerequisite
-		return true
-	end
-
-	for _, p in pairs(otherTech.prerequisites) do
-		if p == tech.name then
-			return true
-		elseif EPR.isTechPrerequisite(tech, data.raw["technology"][p]) then
-			return true
+function EPR.addMissingSciencePacks(science_packs, tech)
+	local technology = data.raw["technology"][tech]
+	local highest_science_pack
+	local highest_level = -1
+	if technology and technology.unit and technology.unit.ingredients then -- if tech is regular technology
+		for _, val in pairs(technology.unit.ingredients) do
+			local level = EPR.getTechLevelFromSciencePack[val[1]] or -2
+			if level > highest_level then
+				highest_level = level
+				highest_science_pack = val[1]
+			elseif level == highest_level then
+				if type(highest_science_pack) == "table" then
+					if not EPR.listContains(highest_science_pack, val[1]) then
+						table.insert(highest_science_pack, val[1])
+					end
+				elseif highest_science_pack ~= val[1] then
+					highest_science_pack = { highest_science_pack, val[1] }
+				end
+			end
+			science_packs[val[1]] = true
+		end
+	elseif technology and technology.prerequisites then -- if tech is trigger-technology check prerequisites
+		for _, pre in pairs(technology.prerequisites) do
+			if pre then
+				local highest = EPR.addMissingSciencePacks(science_packs, pre)
+				local level = EPR.getTechLevelFromSciencePack[highest] or -2
+				if level > highest_level then
+					highest_level = level
+					highest_science_pack = highest
+				elseif level == highest_level then
+					if type(highest_science_pack) == "table" then
+						if not EPR.listContains(highest_science_pack, highest) then
+							table.insert(highest_science_pack, highest)
+						end
+					elseif highest_science_pack ~= highest then
+						highest_science_pack = { highest_science_pack, highest }
+					end
+				end
+			end
 		end
 	end
-
-	return false
+	return highest_science_pack
 end
 
 function EPR.createProductivityIcon()
@@ -204,41 +263,17 @@ function EPR.createIconForItem(item)
 	return {{icon = item.icon, icon_size = item.icon_size}, EPR.createProductivityIcon()}
 end
 
-function EPR.adjustProductivityTechnology(technology)
+function EPR.adjustProductivityTechnology(technology, lowest_tech, special_science_packs)
 	if not technology or not technology.effects or not technology.unit or not technology.unit.ingredients then
 		return
 	end
-
-	-- check all recipes (from effects) and their categories to determine special_science_packs
-	local special_science_packs = {}
-	local recipes = {}
-	for _, effect in pairs(technology.effects) do
-		if effect and effect.type == "change-recipe-productivity" then
-			local recipe = data.raw["recipe"][effect.recipe]
-			if recipe then
-				table.insert(recipes, recipe)
-				local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
-				if sp then
-					local current = (special_science_packs[sp] or 0) + 1
-					special_science_packs[sp] = current
-				elseif EPR.setting["verbose"] then
-					log(EPR.toString(recipe.category,"> EPR: unknown category"))
-				end
-			end
-		end
-	end
-
-	-- find non-science pack requirements
-	local lowest_tech = EPR.getLowestTechFromRecipes(recipes)
-
 	-- find tech levels
 	local tech_levels = EPR.getTechLevels({ type = "item" }, lowest_tech, special_science_packs)
 
 	-- update tech according to lowest tech level
 	-- always adjust ingredients and prerequisites
-	technology.unit.ingredients = EPR.getIngredients(tech_levels[1])
-	local highest_science_pack = EPR.getHighestSciencePack(tech_levels[1])
-	technology.prerequisites = EPR.getPrerequisites(lowest_tech, highest_science_pack)
+	technology.unit.ingredients = EPR.getIngredients(tech_levels[1].packs)
+	technology.prerequisites = EPR.getPrerequisites(lowest_tech, tech_levels[1].highest_science_pack)
 
 	if #tech_levels > 1 then
 		-- make finite
@@ -257,10 +292,9 @@ function EPR.adjustProductivityTechnology(technology)
 		local additional_techs = {}
 		for idx, tech_level in pairs(tech_levels) do
 			if idx > 1 then
-				local ingredients = EPR.getIngredients(tech_level)
+				local ingredients = EPR.getIngredients(tech_level.packs)
 
-				local highest_science_pack = EPR.getHighestSciencePack(tech_level)
-				local prerequisites = EPR.getPrerequisites(lowest_tech, highest_science_pack)
+				local prerequisites = EPR.getPrerequisites(lowest_tech, tech_level.highest_science_pack)
 				if idx > 2 then
 					table.insert(prerequisites, technology.name.."-"..tostring(idx-1))
 				else
@@ -295,45 +329,9 @@ function EPR.adjustProductivityTechnology(technology)
 		end
 
 		if #additional_techs > 0 then
-			-- technology.upgrade = false
 			data:extend(additional_techs)
 		end
 	end
-end
-
-function EPR.getLowestTechFromRecipes(recipes)
-	if not recipes then
-		return nil
-	end
-
-	for _, recipe in pairs(recipes) do
-		if recipe.enabled ~= false then
-			return nil -- no tech required, available at start
-		end
-	end
-
-	local lowest_tech = nil
-	for _, tech in pairs(data.raw["technology"]) do
-		local tech_analyzed = false
-		if tech and tech.effects then
-			for _, unlock in pairs(tech.effects) do
-				if not tech_analyzed and unlock and unlock.type == "unlock-recipe" and unlock.recipe then
-					for _, rec in pairs(recipes) do
-						if not tech_analyzed and rec and rec.name == unlock.recipe then
-							-- this tech unlocks one of the recipes for the current item
-							-- compare it to the current lowest_tech and update accordingly
-							if not lowest_tech or EPR.isTechPrerequisite(tech, lowest_tech) then
-								lowest_tech = tech
-							end
-							tech_analyzed = true
-						end
-					end
-				end
-			end
-		end
-	end
-
-	return lowest_tech
 end
 
 function EPR.getTechLevels(item, lowest_tech, special_science_packs)
@@ -348,53 +346,47 @@ function EPR.getTechLevels(item, lowest_tech, special_science_packs)
 		current_science_packs["military-science-pack"] = false
 	end
 
+	local highest_science_pack = EPR.constHighestSciencePacks[EPR.setting["minimum_science_pack"][EPR.getItemType(item)]]
 	-- get science requirements from lowest_tech, i.e., check if additional science packs are needed
 	if lowest_tech then
-		EPR.addMissingSciencePacks(current_science_packs, lowest_tech)
+		highest_science_pack = EPR.addMissingSciencePacks(current_science_packs, lowest_tech)
 	end
 
-	table.insert(tech_levels, table.deepcopy(current_science_packs))
+	-- add planetary science if needed
+	highest_science_pack = EPR.addMissingPlanetaryScience(current_science_packs, special_science_packs, EPR.setting["minimum_science_pack"][EPR.getItemType(item)]) or highest_science_pack
+	table.insert(tech_levels, { packs = table.deepcopy(current_science_packs), highest_science_pack = highest_science_pack })
 
 	local max_packs = EPR.constSciencePacks[EPR.setting["maximum_science_pack"][EPR.getItemType(item)]]
 
-	local previous_level
+	local previous_level = -1
 	for pack, val in pairs(max_packs) do
 		if val and not current_science_packs[pack]
 				and not (pack == "military-science-pack" and EPR.setting["skip_military"][EPR.getItemType(item)])
 				and not (pack == "utility-science-pack" and EPR.setting["skip_utility"][EPR.getItemType(item)]) then
-			local current_level = EPR.getTechLevelFromSciencePack[pack]
-			if previous_level and previous_level ~= current_level then
-				table.insert(tech_levels, table.deepcopy(current_science_packs))
+			local current_level = EPR.getTechLevelFromSciencePack[pack] or -2
+			if current_level > previous_level and previous_level > -1 then
+				table.insert(tech_levels, { packs = table.deepcopy(current_science_packs), highest_science_pack = highest_science_pack })
+				highest_science_pack = pack
+			end
+			if current_level == previous_level then
+				if type(highest_science_pack) == "table" then
+					table.insert(highest_science_pack, pack)
+				else
+					highest_science_pack = { highest_science_pack, pack }
+				end
 			end
 			previous_level = current_level
 			current_science_packs[pack] = true
 		end
 	end
-	if previous_level then
-		table.insert(tech_levels, table.deepcopy(current_science_packs))
+	if previous_level > -1 then
+		table.insert(tech_levels, { packs = table.deepcopy(current_science_packs), highest_science_pack = highest_science_pack })
 	end
 
 	-- add last level if needed
-	if (EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "one-planetary-science"
-		or EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "any-planetary-science")
-			and not current_science_packs["metallurgic-science-pack"]
-			and not current_science_packs["electromagnetic-science-pack"]
-			and not current_science_packs["agricultural-science-pack"]
-			and not current_science_packs["cryogenic-science-pack"] then
-
-		-- need to add one last level with one of the planetary packs
-		if next(special_science_packs) ~= nil then
-			if EPR.setting["maximum_science_pack"][EPR.getItemType(item)] == "one-planetary-science" then
-				current_science_packs[EPR.getHighestKey(special_science_packs)] = true
-			else
-				for key, val in pairs(special_science_packs) do
-					if val then
-						current_science_packs[key] = true
-					end
-				end
-			end
-			table.insert(tech_levels, table.deepcopy(current_science_packs))
-		end
+	local new_highest = EPR.addMissingPlanetaryScience(current_science_packs, special_science_packs, EPR.setting["maximum_science_pack"][EPR.getItemType(item)])
+	if new_highest then
+		table.insert(tech_levels, { packs = table.deepcopy(current_science_packs), highest_science_pack = new_highest })
 	end
 
 	return tech_levels
@@ -448,69 +440,82 @@ end
 
 function EPR.getPrerequisites(lowest_tech, highest_science_pack)
 	if lowest_tech then
-		if not highest_science_pack then
-			return { lowest.name }
-		elseif type(highest_science_pack) == "table" then
-			for _, pack in pairs(highest_science_pack) do
+		if highest_science_pack then
+			if type(highest_science_pack) == "table" then
 				local result = {}
-				if EPR.isTechPrerequisite(lowest_tech, data.raw["technology"][pack]) or lowest_tech.name == pack then
-					for _, val in pairs(highest_science_pack) do
-						table.insert(result, val)
+				local tech_added = false
+				for _, pack in pairs(highest_science_pack) do
+					if not tech_added and EPR.isSciencePackRequired(pack, lowest_tech) then
+						table.insert(result, lowest_tech)
+						tech_added = true
+					else
+						table.insert(result, pack)
 					end
-					return result
 				end
-			end
 
-			local result = { lowest_tech.name }
-			for _, val in pairs(highest_science_pack) do
-				if not EPR.isTechPrerequisite(val, lowest_tech) and lowest_tech.name ~= val then
-					table.insert(result, val)
+				if not tech_added then
+					table.insert(result, lowest_tech)
+				end
+				return result
+			else
+				if EPR.isSciencePackRequired(highest_science_pack, lowest_tech) then
+					return { lowest_tech }
+				elseif EPR.isTechRequiredForScience(lowest_tech, highest_science_pack) then
+					return { highest_science_pack }
+				else
+					return { lowest_tech, highest_science_pack }
 				end
 			end
-			return result
 		else
-			if EPR.isTechPrerequisite(data.raw["technology"][highest_science_pack], lowest_tech) or highest_science_pack == lowest_tech.name then
-				return { lowest_tech.name }
-			else
-				return { highest_science_pack, lowest_tech.name }
-			end
+			return { lowest_tech }
 		end
-	else
-		if not highest_science_pack then
-			return nil
-		end
+	elseif highest_science_pack then
 		if type(highest_science_pack) == "table" then
-			local result = {}
-			for _, val in pairs(highest_science_pack) do
-				table.insert(result, val)
-			end
-			return result
+			return highest_science_pack
 		else
 			return { highest_science_pack }
 		end
+	else
+		return nil
 	end
-
-	return nil
 end
 
 function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, blacklist_recipe)
 	log("### EPR: Generating all productivity techs ###")
 
-	log("# EPR: Looking for productivity techs #")
+	log("# EPR: Scanning technologies #")
+	-- build list of existing productivity techs and their recipes
+	-- plus a dictionary of recipes to their lowest, i.e., cheapest unlock technology
 	local exclude_recipe = table.deepcopy(blacklist_recipe)
 	local existing_prod_techs = {}
-	for _, tech in pairs(data.raw["technology"]) do
+	local recipes_lowest_tech = {}
+	local recipes_enabled_at_start = {}
+	for tech_name, tech in pairs(data.raw["technology"]) do
 		if tech and tech.effects then
-			local exclude = false
-			for _, val in pairs(blacklist_techs) do
-				exclude = exclude or val == tech.name
-			end
-			if not exclude then
+			if not EPR.listContains(blacklist_recipe, tech_name) then
 				for _, effect in pairs(tech.effects) do
-					if effect and effect.type == "change-recipe-productivity" and effect.recipe then
-						table.insert(exclude_recipe, effect.recipe)
-						existing_prod_techs[tech.name] = true
-						-- table.insert(existing_prod_techs, tech)
+					if effect.type == "change-recipe-productivity" then
+						local recipe = data.raw["recipe"][effect.recipe]
+						if recipe then
+							table.insert(exclude_recipe, recipe.name)
+							if existing_prod_techs[tech_name] then
+								table.insert(existing_prod_techs[tech_name].recipes, recipe.name)
+								existing_prod_techs[tech_name].enabled_at_start = existing_prod_techs[tech_name].enabled_at_start or recipe.enabled ~= false
+							else
+								existing_prod_techs[tech_name] = { recipes = { recipe.name }, enabled_at_start = recipe.enabled ~= false }
+							end
+						end
+					elseif effect.type == "unlock-recipe" then
+						local recipe = data.raw["recipe"][effect.recipe]
+						-- the default is true, i.e., nil means true -> ~= false
+						if recipe and recipe.name then
+							if recipes_lowest_tech[recipe.name] then
+								recipes_lowest_tech[recipe.name] = EPR.getLowestTech(recipes_lowest_tech[recipe.name], tech_name)
+							else
+								recipes_lowest_tech[recipe.name] = tech_name
+							end
+							recipes_enabled_at_start[recipe.name] = recipe.enabled ~= false
+						end
 					end
 				end
 			end
@@ -518,7 +523,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	end
 
 	log("# EPR: Scanning recipes #")
+	-- determine all recipe categories for debugging purposes
 	local categs = {}
+	-- create list of items (and consequently of productivity technologies)
 	local itemList = {}
 	for _, recipe in pairs(data.raw["recipe"]) do
 		if recipe and recipe.name
@@ -529,6 +536,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 				and recipe.results
 				and recipe.results[1]
 				and recipe.results[1].name then
+
 			-- collect crafting categories for debug purposes
 			local cat = recipe.category
 			local addcat = true
@@ -538,22 +546,13 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 			if addcat then
 				table.insert(categs, cat)
 			end
-			-- check recipe against blacklist
-			local exclude = false
-			for _, r in pairs(exclude_recipe) do
-				exclude = exclude or r == recipe.name
-			end
-			if not exclude then
+
+			if not EPR.listContains(exclude_recipe, recipe.name) then
 				local idx = 1
 				local finished = false
 				while not finished and idx <= #recipe.results do
 					local item_name = recipe.results[idx].name
-					-- check item/fluid against blacklist
-					local exclude = false
-					for _, p in pairs(blacklist_products) do
-						exclude = exclude or p == item_name
-					end
-					if not exclude then
+					if not EPR.listContains(blacklist_products, item_name) then
 						-- add to item list
 						if EPR.setting["verbose"] then
 							log("EPR: Adding recipe "..tostring(recipe.name).." to item "..item_name)
@@ -564,11 +563,14 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 							change = 0.1
 						}
 						local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
+						local lowest_tech = recipes_lowest_tech[recipe.name]
 						if itemList[item_name] then
 							table.insert(itemList[item_name].recipes, recipe)
 							table.insert(itemList[item_name].effects, effect)
+							itemList[item_name].enabled_at_start = itemList[item_name].enabled_at_start or recipe.enabled ~= false
+							itemList[item_name].lowest_tech = EPR.getLowestTech(itemList[item_name].lowest_tech, lowest_tech)
 						else
-							itemList[item_name] = { recipes = { recipe }, effects = { effect }, special_packs = {} }
+							itemList[item_name] = { recipes = { recipe }, effects = { effect }, special_packs = {}, enabled_at_start = recipe.enabled ~= false, lowest_tech = lowest_tech }
 						end
 						if sp then
 							local current = (itemList[item_name].special_packs[sp] or 0) + 1
@@ -585,6 +587,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 
 	-- only for debugging
 	if EPR.setting["verbose"] then
+		table.sort(categs)
 		log(EPR.toString(categs, "EPR: Categories"))
 	end
 
@@ -602,7 +605,13 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 				end
 
 				-- determine lowest necessary tech and build tech levels based on science pack progression
-				local lowest_tech = EPR.getLowestTechFromRecipes(item_object.recipes)
+				local lowest_tech
+				if not item_object.enabled_at_start then
+					-- lowest_tech = EPR.getLowestTechFromRecipes(item_object.recipes)
+					-- lowest_tech = EPR.getLowestTech(item_object.technologies)
+					lowest_tech = item_object.lowest_tech
+				end
+
 				local tech_levels = EPR.getTechLevels(item, lowest_tech, item_object.special_packs)
 
 				for idx, tech_level in pairs(tech_levels) do
@@ -620,20 +629,39 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		end
 	end
 
-	log("# EPR: adding technologies to the game")
+	log("# EPR: adding technologies to the game #")
 	if #new_technologies > 0 then
 		data:extend(new_technologies)
 	end
 
 	if EPR.setting["adjust_existing_techs"] then
-		log("# EPR: adjusting existing technologies to same progression")
-		for key, _ in pairs(existing_prod_techs) do
+		log("# EPR: adjusting existing technologies to same progression #")
+		for key, value in pairs(existing_prod_techs) do
 			local tech = data.raw["technology"][key]
 			if tech then
 				if EPR.setting["verbose"] then
-					log("> EPR: adjusting "..tostring(tech.name))
+					log("> EPR: adjusting "..key)
 				end
-				EPR.adjustProductivityTechnology(tech)
+				local lowest_tech
+				local special_science_packs = {}
+				if not value.enabled_at_start then
+					for _, val in pairs(value.recipes) do
+						local recipe = data.raw["recipe"][val]
+						if recipe then
+							local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
+							if sp then
+								local current = (special_science_packs[sp] or 0) + 1
+								special_science_packs[sp] = current
+							end
+							if not lowest_tech then
+								lowest_tech = recipes_lowest_tech[val]
+							else
+								lowest_tech = EPR.getLowestTech(recipes_lowest_tech[val], lowest_tech)
+							end
+						end
+					end
+				end
+				EPR.adjustProductivityTechnology(tech, lowest_tech, special_science_packs)
 			end
 		end
 	end
@@ -644,7 +672,7 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 		return nil
 	end
 
-	local prerequisites = EPR.getPrerequisites(lowest_tech, EPR.getHighestSciencePack(tech_level))
+	local prerequisites = EPR.getPrerequisites(lowest_tech, tech_level.highest_science_pack)
 	if level > 1 then
 		table.insert(prerequisites, EPR.prefix(item.name.."-productivity-"..(level-1)))
 	end
@@ -655,12 +683,12 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 		and EPR.setting["max_level_value"][EPR.getItemType(item)]
 		or "infinite"
 
-	-- tech is already above limit set in settings
 	if maximum_level ~= "infinite" and maximum_level < level then
+	-- tech is already above limit set in settings
 		return nil
 	end
 
-	local ingredients = EPR.getIngredients(tech_level)
+	local ingredients = EPR.getIngredients(tech_level.packs)
 	if not EPR.hasValidLab(ingredients) then
 		if EPR.setting["verbose"] then
 			log("> EPR: no valid lab found for "..EPR.prefix(item.name.."-productivity-"..level))
@@ -767,4 +795,179 @@ function EPR.getHighestKey(list)
 	end
 
 	return max_key
+end
+
+function EPR.listContains(list, value)
+	if not list or not value then
+		return false
+	end
+
+	for _, item in pairs(list) do
+		if item == value then
+			return true
+		end
+	end
+
+	return false
+end
+
+function EPR.getLowestTech(first, second)
+	if not first or not second then
+		return nil
+	end
+
+	local firstTech = data.raw["technology"][first]
+	local secondTech = data.raw["technology"][second]
+
+	if not firstTech or not secondTech then
+		return nil
+	end
+
+	if firstTech.prerequisites then
+		if secondTech.prerequisites then
+			-- both have prerequisites
+			local maxIngredientsFirst
+			local maxIngredientsSecond
+
+			if firstTech.unit and firstTech.unit.ingredients then
+				maxIngredientsFirst = #firstTech.unit.ingredients
+			end
+			if secondTech.unit and secondTech.unit.ingredients then
+				maxIngredientsSecond = #secondTech.unit.ingredients
+			end
+
+			local checked = {}
+			local queue = table.deepcopy(firstTech.prerequisites)
+			while next(queue) ~= nil do
+				local current = table.remove(queue, 1)
+				if not checked[current] then
+					if current == second then
+						return second
+					end
+					checked[current] = true
+					local currentTech = data.raw["technology"][current]
+					if currentTech then
+						if not maxIngredientsFirst and currentTech.unit and currentTech.unit.ingredients then
+							maxIngredientsFirst = #currentTech.unit.ingredients
+						end
+						if currentTech.prerequisites then
+							for _, val in pairs(currentTech.prerequisites) do
+								table.insert(queue, val)
+							end
+						end
+					end
+				end
+			end
+
+			checked = {}
+			queue = table.deepcopy(secondTech.prerequisites)
+			while next(queue) ~= nil do
+				local current = table.remove(queue, 1)
+				if not checked[current] then
+					if current == first then
+						return first
+					end
+					checked[current] = true
+					local currentTech = data.raw["technology"][current]
+					if currentTech then
+						if not maxIngredientsSecond and currentTech.unit and currentTech.unit.ingredients then
+							maxIngredientsSecond = #currentTech.unit.ingredients
+						end
+						if currentTech.prerequisites then
+							for _, val in pairs(currentTech.prerequisites) do
+								table.insert(queue, val)
+							end
+						end
+					end
+				end
+			end
+
+			-- neither techs are in the prerequisite tree of the other - compare science pack count
+			if maxIngredientsFirst and maxIngredientsSecond then
+				if maxIngredientsFirst > maxIngredientsSecond then
+					return second
+				end
+			end
+		else
+			-- only first has prerequisites, second is available right away
+			return second
+		end
+	end
+
+	-- if all else fails, use first by default
+	-- e.g., first is available right away, default to first being lower, even if second also has no prerequisites
+	return first
+end
+
+function EPR.isSciencePackRequired(pack_name, tech_name)
+	if not pack_name or not tech_name then
+		return false
+	end
+
+	if pack_name == tech_name then
+		return true
+	end
+
+	local tech = data.raw["technology"][tech_name]
+	if not tech then
+		return false
+	end
+
+	if tech.unit then
+		for _, pack in pairs(tech.unit.ingredients) do
+			if pack[1] == pack_name then
+				return true
+			end
+		end
+	end
+
+	local checked = {}
+	local queue = { tech_name }
+	while next(queue) ~= nil do
+		local current = table.remove(queue, 1)
+		if not checked[current] then
+			if current == pack_name then
+				return true
+			end
+			checked[current] = true
+			local techn = data.raw["technology"][current]
+			if techn and techn.prerequisites then
+				for _, val in pairs(techn.prerequisites) do
+					table.insert(queue, val)
+				end
+			end
+		end
+	end
+
+	return false
+end
+
+function EPR.isTechRequiredForScience(tech_name, pack_name)
+	if not tech_name or not pack_name then
+		return false
+	end
+
+	if tech_name == pack_name then
+		return true
+	end
+
+	local checked = {}
+	local queue = { pack_name }
+	while next(queue) ~= nil do
+		local current = table.remove(queue, 1)
+		if not checked[current] then
+			if current == tech_name then
+				return true
+			end
+			checked[current] = true
+			local techn = data.raw["technology"][current]
+			if techn and techn.prerequisites then
+				for _, val in pairs(techn.prerequisites) do
+					table.insert(queue, val)
+				end
+			end
+		end
+	end
+
+	return false
 end

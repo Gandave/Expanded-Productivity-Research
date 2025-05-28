@@ -1,3 +1,9 @@
+Version: 1.0.7
+Date: 28.05.2025
+  Minor Features:
+    - Restructured the code that checks for requirements to improve startup time.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.0.6
 Date: 26.05.2025
   Minor Features:
