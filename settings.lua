@@ -140,11 +140,42 @@ data:extend({
 		order = "b[science]c[packs]d"
 	},
 	{
+		type = "string-setting",
+		name = "epr_choose_recipes",
+		setting_type = "startup",
+		default_value = "intermediate",
+		order = "d[further]a[recipes]",
+		allowed_values = { "intermediate", "intermediate_tiles", "intermediate_ammo", "intermediate_modules", "intermediate_tiles_ammo", "intermediate_tiles_modules", "intermediates_tiles_ammo_modules", "intermediate_ammo_modules", "all_but_equipment", "all" }
+	},
+	{
+		type = "bool-setting",
+		name = "epr_overwrite_blacklist",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[further]m[blacklist]a"
+	},
+	{
+		type = "string-setting",
+		name = "epr_blacklist_item",
+		setting_type = "startup",
+		allow_blank = true,
+		default_value = "",
+		order = "d[further]m[blacklist]b"
+	},
+	{
+		type = "string-setting",
+		name = "epr_blacklist_recipe",
+		setting_type = "startup",
+		allow_blank = true,
+		default_value = "",
+		order = "d[further]m[blacklist]c"
+	},
+	{
 		type = "bool-setting",
 		name = "epr_verbose",
 		setting_type = "startup",
 		default_value = false,
-		order = "d[debug]a"
+		order = "e[debug]a"
 	}
 })
 

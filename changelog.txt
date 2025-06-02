@@ -1,3 +1,14 @@
+Version: 1.1.0
+Date: 31.05.2025
+  Features:
+	- Hidden recipes are now ignored.
+    - Added setting to apply productivity techs to all recipes, not just intermediates. Configurable.
+	- Added functionality to group productivity techs for machine types (e.g. all assembling machines into one).
+	- Added compatibility with 5dims mods.
+  Changes:
+    - Removed utility science as a requirement for recipe categories (aside from regular progression if flag is set).
+
+---------------------------------------------------------------------------------------------------
 Version: 1.0.7
 Date: 28.05.2025
   Minor Features:
@@ -47,7 +58,7 @@ Date: 21.05.2025
   Minor Features:
 	- Added support for More Asteroids, Forked
   Bugfixes:
-    - Adjusted producitvity technologies are infinite again (damn typo)
+    - Adjusted productivity technologies are infinite again (damn typo)
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.0

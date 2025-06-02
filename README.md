@@ -6,6 +6,10 @@ Additionally, research is staggered. Similar to how mining productivity, you can
 
 Lastly, the progression is completely configurable and is, by default, different for science pack recipes.
 
+# Version 1.1
+
+With version 1.1 I added functionality to allow more productivity techs than just for intermediate recipes and the ability to overwrite my internal blacklist of recipes/items. This can be configured in the settings. For example, techs could be generated for intermediates and ammunition recipes and module recipes. Or you allow everything and then manually specifiy a long list of exceptions. Also, the mod groups some non-intermediate recipes into one tech, e.g. all types or magazines and shotgun, or all modules of one type. Feedback is appreciated.
+
 # Mod compatibility
 
 The generation of technologies is dynamic and should be flexible enough to be compatible with most mods right out of the gate. However, other mods might need to be flagged as optional dependencies if they add/change recipes in the final phase of initialization.
@@ -18,6 +22,7 @@ New science packs or lab types will be ignored by default.
 - [Age of Production](https://mods.factorio.com/mod/Age-of-Production)
 - [Vanilla Galore Continued](https://mods.factorio.com/mod/vanilla_galore_continued)
 - [Space Age Galore](https://mods.factorio.com/mod/space_age_galore)
+- [Various 5dim mods](https://mods.factorio.com/user/McGuten)
 
 ## Partial compatibility (i.e., works, but does not make full use of all features) or to be checked
 - [Secretas & Frozeta](https://mods.factorio.com/mod/secretas)
@@ -34,6 +39,8 @@ The first level of the technology requires the "lowest" technology that unlocks 
 
 For example, *heavy oil* is the first result of *advanced oil processing*, *coal liquefaction* and *simple coal liquefaction*. The first level is unlocked right after *advanced oil processing* and requires automation, logistic and chemical science (default configuration). The next levels add production science, space science and finally agricultural science.
 
+With version 1.1 I added settings to also consider some or all non-intermediate recipes. They work just like the intermediate recipe, except that some are grouped together, like all assembling machines being affected by one single tech, rather than one for each machine. This is done according to personal preference and how useful I consider the items. For example, you usually craft each armor type only once, so I see little reason to have productivity on these recipes. But if you do, one tech for light armor productivity, one for heavy armor, and so on, seems excessive to me.
+
 # How to configure
 There are two sets of settings, one for "regular" intermediates and one for science pack recipes. Both work analogous and can be set to the same values for a uniform progression.
 
@@ -49,7 +56,11 @@ The setting "One Planetary Science" means that the infinite level requires one o
 
 As is the case in the base game/Space Age, military and utility science can be ignored from producitivty technologies. They will still require these packs if the recipe-unlocking technology needs them (as is the strange case of coal-productivity, because coal synthesis is unlocked by rocket turrets).
 
-Finally, "adjust existing productivity technologies to follow the same progression" does exactly that.
+Next, "adjust existing productivity technologies to follow the same progression" does exactly that.
+
+Internally, I exclude some items and recipes from generating techs, e.g., water, steam or the various circuit combinators. You can overwrite this setting by checking "Overwrite blacklist settings?" and provide your own, comma-separated list of items and recipes to be excluded.
+
+Lastly, you can specify which recipes will be considered by the mod. By default, only intermediates (i.e., all recipes that allow for productivity modules) are considered, but you can additionally include recipes for ammo, modules or tiles (landfill, concrete, etc.) or even the full list of recipes.
 
 
 # FAQ
