@@ -290,6 +290,21 @@ function EPR.combineGroupExcept(itemList, main, itemGroup, exclusion)
 	end
 end
 
+function EPR.combineItemSubgroup(itemList, main, subgroup)
+	if not itemList or not main or not subgroup then
+		return
+	end
+
+	local results = {}
+	for key, item in pairs(data.raw["item"]) do
+		if item and item.subgroup == subgroup then
+			table.insert(results, key)
+		end
+	end
+
+	EPR.combineItems(itemList, main, table.unpack(results))
+end
+
 function EPR.hasValidLab(ingredients)
 	if not ingredients then
 		return false
@@ -1071,7 +1086,14 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	EPR.combineGroup(itemList, "pipe", data.raw["pipe-to-ground"])
 
 	-- concrete
-	EPR.combineItems(itemList, "concrete", "refined-concrete", "hazard-concrete", "refined-hazard-concrete")
+	EPR.combineItems(itemList, "concrete", "refined-concrete", "hazard-concrete", "refined-hazard-concrete", "dect-concrete-grid")
+	-- dectorio concrete
+	EPR.combineItemSubgroup(itemList, "concrete", "flooring-painted")
+	EPR.combineItemSubgroup(itemList, "concrete", "flooring-painted-refined")
+	EPR.combineItemSubgroup(itemList, "concrete", "flooring-painted-refined-base")
+
+	-- foundation
+	EPR.combineItems(itemList, "foundation", "ice-platform")
 
 	-- lightning collector
 	EPR.combineGroup(itemList, "lightning-collector", data.raw["lightning-attractor"])
@@ -1098,9 +1120,20 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 
 	-- landfill
 	if itemList["landfill"] then
-		EPR.combineGroupExcept(itemList, "landfill", data.raw["tile"], {"space-platform-foundation"})
-		-- EPR.combineItems(itemList, "landfill", "ice-platform", "foundation", "artificial-yumako-soil", "overgrowth-yumako-soil", "artificial-jellynut-soil", "overgrowth-jellynut-soil")
+		EPR.combineGroupExcept(itemList, "landfill", data.raw["tile"], {"space-platform-foundation", "concrete", "foundation", "dect-concrete-grid"})
+		-- dectorio landscaping
+		EPR.combineItems(itemList, "landfill", "dect-base-dirt-1", "dect-base-dry-dirt", "dect-base-grass-1", "dect-base-red-desert-1", "dect-base-sand-1")
+		EPR.combineItems(itemList, "dect-base-water", "dect-base-deepwater", "dect-base-water-green", "dect-base-deepwater-green")
+		EPR.combineItemSubgroup(itemList, "landfill", "landscaping-trees")
+		EPR.combineItemSubgroup(itemList, "landfill", "landscaping-rocks")
 	end
+
+	-- dectorio traffic bollard
+	EPR.combineItems(itemList, "plastic-bar", "dect-traffic-bollard")
+
+	-- 5dim-turrets
+	EPR.combineItems(itemList, "gun-turret", "5d-gun-turret-small-01", "5d-gun-turret-big-01", "5d-gun-turret-sniper-01")
+	EPR.combineItems(itemList, "laser-turret", "5d-laser-turret-small-01", "5d-laser-turret-big-01", "5d-laser-turret-sniper-01")
 
 	-- circuit stuff (usually deactivated)
 	if itemList["arithmetic-combinator"] then
@@ -1157,7 +1190,10 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		log("# EPR: adjusting existing technologies to same progression #")
 		for key, value in pairs(existing_prod_techs) do
 			local tech = data.raw["technology"][key]
-			if tech then
+			-- check if tech exists and is not already part of a progression
+			if tech
+					and not string.match(key, "-%d+$") -- end with a number, so most likely there's other similar technologies
+					and not data.raw["technology"][key.."-2"] then -- does not end with a number, so could be the first of a sequence ("-1" omitted)
 				if EPR.setting["verbose"] then
 					log("> EPR: adjusting "..key)
 				end

@@ -28,6 +28,8 @@ New science packs or lab types will be ignored by default.
 - [Secretas & Frozeta](https://mods.factorio.com/mod/secretas)
 - [Moshine](https://mods.factorio.com/mod/Moshine)
 - [Muluna, Moon of Nauvis](https://mods.factorio.com/mod/planet-muluna)
+- [Cerys](https://mods.factorio.com/mod/Cerys-Moon-of-Fulgora)
+- [Space Age without Space](https://mods.factorio.com/mod/SpaceAgeWithoutSpace) (runs without issues, but the mod makes space science the highest pack again which makes the progression weird)
 
 ## Incompatible
 - none known

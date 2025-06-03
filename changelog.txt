@@ -1,5 +1,16 @@
+Version: 1.1.1
+Date: 03.06.2025
+  Minor Features:
+	- Added better grouping of dectorio recipes.
+	- Added better grouping of 5dim turret recipes.
+  Changes:
+    - Split landfill, concrete and foundation productivity.
+  Bugfixes:
+    - Fixed crash on startup with mod Cerys enabled.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.1.0
-Date: 31.05.2025
+Date: 02.06.2025
   Features:
 	- Hidden recipes are now ignored.
     - Added setting to apply productivity techs to all recipes, not just intermediates. Configurable.
