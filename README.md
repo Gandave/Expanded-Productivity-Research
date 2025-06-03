@@ -23,13 +23,13 @@ New science packs or lab types will be ignored by default.
 - [Vanilla Galore Continued](https://mods.factorio.com/mod/vanilla_galore_continued)
 - [Space Age Galore](https://mods.factorio.com/mod/space_age_galore)
 - [Various 5dim mods](https://mods.factorio.com/user/McGuten)
+- [Space Age without Space](https://mods.factorio.com/mod/SpaceAgeWithoutSpace)
 
 ## Partial compatibility (i.e., works, but does not make full use of all features) or to be checked
 - [Secretas & Frozeta](https://mods.factorio.com/mod/secretas)
 - [Moshine](https://mods.factorio.com/mod/Moshine)
 - [Muluna, Moon of Nauvis](https://mods.factorio.com/mod/planet-muluna)
 - [Cerys](https://mods.factorio.com/mod/Cerys-Moon-of-Fulgora)
-- [Space Age without Space](https://mods.factorio.com/mod/SpaceAgeWithoutSpace) (runs without issues, but the mod makes space science the highest pack again which makes the progression weird)
 
 ## Incompatible
 - none known

@@ -24,6 +24,10 @@ for _, val in pairs(blacklist_fluid) do
 	table.insert(blacklist_product, val)
 end
 
+if mods["SpaceAgeWithoutSpace"] then
+	table.insert(blacklist_product, "promethium-science-pack")
+end
+
 if settings.startup[EPR.prefix("overwrite_blacklist")].value then
 	blacklist_product = {}
 	blacklist_recipe = {}

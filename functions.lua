@@ -149,6 +149,15 @@ EPR.getTechLevelFromSciencePack = {
 	["promethium-science-pack"] = 9
 }
 
+if mods["SpaceAgeWithoutSpace"] then
+	log("# EPR loading with SpaceAgeWithoutSpace preset")
+	EPR.constSciencePacks["space-science"] = EPR.constSciencePacks["promethium-science"]
+	EPR.constSciencePacks["one-planetary-science"]["space-science-pack"] = false
+	EPR.constSciencePacks["any-planetary-science"]["space-science-pack"] = false
+	EPR.constSciencePacks["all-planetary-science"]["space-science-pack"] = false
+	EPR.getTechLevelFromSciencePack["space-science-pack"] = 10
+end
+
 function EPR.getHighestKey(list)
 	if not list then
 		return nil

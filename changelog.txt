@@ -1,3 +1,9 @@
+Version: 1.1.2
+Date: 03.06.2025
+  Minor Features:
+	- Added compatibility with Space Age without Space (science pack progression).
+
+---------------------------------------------------------------------------------------------------
 Version: 1.1.1
 Date: 03.06.2025
   Minor Features:
