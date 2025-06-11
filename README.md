@@ -10,6 +10,10 @@ Lastly, the progression is completely configurable and is, by default, different
 
 With version 1.1 I added functionality to allow more productivity techs than just for intermediate recipes and the ability to overwrite my internal blacklist of recipes/items. This can be configured in the settings. For example, techs could be generated for intermediates and ammunition recipes and module recipes. Or you allow everything and then manually specifiy a long list of exceptions. Also, the mod groups some non-intermediate recipes into one tech, e.g. all types or magazines and shotgun, or all modules of one type. Feedback is appreciated.
 
+# Version 1.2
+
+With version 1.2 I added functionality to allow multiple levels per "tier" of science. Meaning that there could now be several levels with only automation and logistic science packs being required (but with increasing cost), which are followed by several levels with automation, logistic and chemical science, and so on. This can be adjusted with the setting "Levels per tier" which defaults to 1. Costs should be dynamically generated to give a "nice-ish" increase in cost until the first "infinite" level is reached which has the costs as defined in the settings.
+
 # Mod compatibility
 
 The generation of technologies is dynamic and should be flexible enough to be compatible with most mods right out of the gate. However, other mods might need to be flagged as optional dependencies if they add/change recipes in the final phase of initialization.
@@ -48,7 +52,9 @@ There are two sets of settings, one for "regular" intermediates and one for scie
 
 The cost factor and cost base determine the research cost formula, which is FACTOR ^ level * BASE. The default is 1.5 and 1000 which matches the Space Age techs (1500, 2250, 3375, etc.).
 
-The non-infinite levels require a fraction based on how many levels there are and rounded down to a multiple of 100. E.g., processing unit productivity has four levels (chemical, +production, +space, +electromagnetic). The first level costs 1/4 * 1500 = 375, which is rounded down to 300.
+The non-infinite levels require a fraction of science packs based on how many levels there are in total. The increase in cost is calculated dynamically and roughly exponential. For example, a tech could start as cheap as 10 science packs for the first level, then 100 for the next, then 300, then 700 and finally 1500, at which point to cost factor setting determines the increase.
+
+Levels per tier can be used to generate more than one technology level before the next science pack is added. For example, you might have five levels requiring only automation science, then another five which require automation and logistic science followed by five level which additionally require chemical science, and so on.
 
 Infinite tech and maximum level can be used to limit the maximum available technology level, since productivity is capped at 300% (barring other mods that change this). Or if you simply prefer to have a custom limit on the productivity gained by this mod.
 

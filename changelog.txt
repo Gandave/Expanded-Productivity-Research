@@ -1,3 +1,15 @@
+Version: 1.2.0
+Date: 10.06.2025
+  Features:
+    - Added setting to allow multiple levels per "tier" of science.
+	- Added functionality to smoothen out the science pack costs before the final level.
+  Changes:
+	- Added tech grouping for 5dim multi-connection tank to regular storage tanks.
+  Bugfixes:
+	- Fixed tech grouping for traffic bollard from Dectorio.
+	- Fixed tech grouping for steel processing from 5dim.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 03.06.2025
   Minor Features:

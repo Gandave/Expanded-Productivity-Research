@@ -13,6 +13,10 @@ EPR.setting = {
 		["item"] = settings.startup[EPR.prefix("formula_base")].value,
 		["science_pack"] = settings.startup[EPR.prefix("formula_base_science")].value
 	},
+	["levels_per_tier"] = {
+		["item"] = settings.startup[EPR.prefix("levels_per_tier")].value,
+		["science_pack"] = settings.startup[EPR.prefix("levels_per_tier_science")].value
+	},
 	["infinite_tech"] = {
 		["item"] = settings.startup[EPR.prefix("infinite_tech")].value,
 		["science_pack"] = settings.startup[EPR.prefix("infinite_tech_science")].value
@@ -204,6 +208,10 @@ function EPR.toString(object, name)
 		result = result..tostring(object)
 	end
 	return result
+end
+
+function EPR.log(name, object)
+	log(EPR.toString(object, name))
 end
 
 function EPR.getItem(item_name)
@@ -537,6 +545,28 @@ function EPR.addMissingSciencePacks(science_packs, tech)
 	return highest_science_pack, highest_level
 end
 
+function EPR.roundToFactor(value, factor)
+	return math.floor(value / factor) * factor
+end
+
+function EPR.calculateFormula(tier, num_tiers, itemType)
+	-- linear extrapolation of exponentional curve toward requirements for first infinite level
+	local levels_per_tier = EPR.setting["levels_per_tier"][itemType] or 1
+	local divisor = num_tiers
+	if not EPR.setting["infinite_tech"][itemType] then
+		divisor = math.min(divisor, math.ceil(EPR.setting["max_level_value"][itemType] / levels_per_tier))
+	end
+
+	local chunk = math.sqrt(EPR.setting["formula_factor"][itemType] * EPR.setting["formula_base"][itemType]) / divisor
+	local last_base = math.max(10, (tier * chunk) ^ 2)
+	local next_base = math.max(10, ((tier + 1) * chunk) ^ 2)
+	local step = (next_base - last_base) / levels_per_tier
+	-- some rounding to avoid "odd" numbers
+	local factor = math.max(10, 10 ^ math.floor(math.log10(step)))
+
+	return EPR.roundToFactor(step, factor).." * (L - "..((tier - 1) * levels_per_tier + 1)..") + "..math.max(factor, EPR.roundToFactor(last_base, factor))
+end
+
 function EPR.getLowestTech(first, second)
 	if not first then
 		if not second then
@@ -758,79 +788,99 @@ function EPR.getTechLevels(item, lowest_tech, special_science_packs)
 	return tech_levels
 end
 
-function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, level, noOfTechs)
-	if not item or not item.name or not item_object or not item_object.effects or not level or level < 1 or not noOfTechs or level > noOfTechs or not tech_level then
+function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, tier, noOfTechs)
+	if not tier or tier < 1 or not noOfTechs or tier > noOfTechs or not tech_level then
 		return nil
 	end
+
+	local item_name = item and item.name or "blank"
+	local item_type = EPR.getItemType(item) or "item"
+	local levels_per_tier = EPR.setting["levels_per_tier"][item_type] or 1
 
 	local prerequisites = EPR.getPrerequisites(lowest_tech, tech_level.highest_science_pack)
-	if level > 1 then
-		table.insert(prerequisites, EPR.prefix(item.name.."-productivity-"..(level-1)))
+	if tier > 1 then
+		table.insert(prerequisites, EPR.prefix(item_name.."-productivity-"..((tier - 2) * levels_per_tier + 1)))
 	end
 
-	local final = level == noOfTechs
-	-- if tech has a max level in settings then use that, else "infinite"
-	local maximum_level = (final and not EPR.setting["infinite_tech"][EPR.getItemType(item)])
-		and EPR.setting["max_level_value"][EPR.getItemType(item)]
-		or "infinite"
+	local final = tier == noOfTechs
 
-	if maximum_level ~= "infinite" and maximum_level < level then
-	-- tech is already above limit set in settings
-		return nil
+	local maximum_level = tier * levels_per_tier
+	if not EPR.setting["infinite_tech"][item_type] then
+		local diff = maximum_level - EPR.setting["max_level_value"][item_type]
+		if diff > 0 then
+			if diff >= levels_per_tier then
+				return nil
+			end
+			maximum_level = maximum_level - diff
+		end
+	end
+
+	-- if tech is capped, check if we're already over the limit
+	if not EPR.setting["infinite_tech"][item_type] then
+		if (tier - 1) * levels_per_tier >= EPR.setting["max_level_value"][item_type] then
+			return nil
+		end
 	end
 
 	local ingredients = EPR.getIngredients(tech_level.packs)
 	if not EPR.hasValidLab(ingredients) then
 		if EPR.setting["verbose"] then
-			log("> EPR: no valid lab found for "..EPR.prefix(item.name.."-productivity-"..level))
+			log("> EPR: no valid lab found for "..EPR.prefix(item_name.."-productivity-"..tier))
 		end
 		return nil
 	end
 
 	local unit = {ingredients = ingredients, time = 60}
 	if final then
-		unit["count_formula"] = EPR.setting["formula_factor"][EPR.getItemType(item)].."^(L-"..(noOfTechs - 1)..")*"..EPR.setting["formula_base"][EPR.getItemType(item)]
+		unit["count_formula"] = EPR.setting["formula_factor"][item_type].."^(L-"..((noOfTechs - 1) * levels_per_tier)..")*"..EPR.setting["formula_base"][item_type]
 	else
-		-- if not infinite will give a fraction of the first infinite's level cost
-		-- rounded to hundreds (because it looks nicer), but at least 10 for the weird
-		-- case that due to lowered settings less than 100 packs are required
-		unit["count"] = math.max(math.floor(EPR.setting["formula_factor"][EPR.getItemType(item)] * EPR.setting["formula_base"][EPR.getItemType(item)] * level / noOfTechs / 100) * 100, 10)
+		-- if not infinite will give a roughly exponential progression with rounded number of science packs
+		unit["count_formula"] = EPR.calculateFormula(tier, noOfTechs, item_type)
 	end
 
 	local tech = {
 		type = "technology",
-		name = EPR.prefix(item.name.."-productivity-"..level),
+		name = EPR.prefix(item_name.."-productivity-"..((tier - 1) * levels_per_tier + 1)),
 		icons = EPR.createIconForItem(item),
-		effects = item_object.effects,
+		effects = item_object and item_object.effects,
 		unit = unit,
 		prerequisites = prerequisites,
 		upgrade = true
 	}
 
-	local localised_name = item_object.localised_name
+	local localised_name = item_object and item_object.localised_name
 	if not localised_name then
-		localised_name = item.localised_name
+		localised_name = item and item.localised_name
 	end
 	if not localised_name then
-		localised_name = {"?", {"item-name."..item.name}, {"fluid-name."..item.name}, {"entity-name."..item.name}, {"equipment-name."..item.name}}
+		localised_name = {"?", {"item-name."..item_name}, {"fluid-name."..item_name}, {"entity-name."..item_name}, {"equipment-name."..item_name}}
 	end
 
 	if final then
 		tech.localised_name = {"technology-name."..EPR.prefix("productivity_tech_final"), localised_name}
 	else
-		tech.localised_name = {"technology-name."..EPR.prefix("productivity_tech"), localised_name, tostring(level)}
+		tech.localised_name = {"technology-name."..EPR.prefix("productivity_tech"), localised_name}
 	end
 	tech.localised_description = {"technology-description."..EPR.prefix("productivity_tech"), localised_name}
 
 	if final then
-		tech["max_level"] = maximum_level
+		if EPR.setting["infinite_tech"][item_type] then
+			maximum_level = "infinite"
+		else
+			maximum_level = EPR.setting["max_level_value"][item_type]
+		end
 	end
+	tech["max_level"] = maximum_level
 
 	return tech
 end
 
 function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, blacklist_recipe)
 	log("### EPR: Generating all productivity techs ###")
+
+	if EPR.setting["verbose"] then
+		EPR.log("EPR settings", EPR.setting)
+	end
 
 	log("# EPR: Scanning technologies #")
 	-- build list of existing productivity techs and their recipes
@@ -1118,9 +1168,10 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	-- lamps (usually not needed)
 	EPR.combineGroup(itemList, "small-lamp", data.raw["lamp"])
 
-	-- pumps
+	-- pumps + tanks
 	EPR.combineGroup(itemList, "pump", data.raw["pump"])
 	EPR.combineGroup(itemList, "pump", data.raw["offshore-pump"])
+	EPR.combineItems(itemList, "storage-tank", "5d-storage-tank-multi-01")
 
 	if mods["space-age"] then
 		-- space platform starter packs
@@ -1137,9 +1188,6 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		EPR.combineItemSubgroup(itemList, "landfill", "landscaping-rocks")
 	end
 
-	-- dectorio traffic bollard
-	EPR.combineItems(itemList, "plastic-bar", "dect-traffic-bollard")
-
 	-- 5dim-turrets
 	EPR.combineItems(itemList, "gun-turret", "5d-gun-turret-small-01", "5d-gun-turret-big-01", "5d-gun-turret-sniper-01")
 	EPR.combineItems(itemList, "laser-turret", "5d-laser-turret-small-01", "5d-laser-turret-big-01", "5d-laser-turret-sniper-01")
@@ -1152,6 +1200,28 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	if itemList["loader"] then
 		EPR.combineGroup(itemList, "loader", data.raw["loader"])
 		EPR.combineGroup(itemList, "loader", data.raw["loader-1x1"])
+	end
+
+	-- adjust existing productivity techs
+
+	-- dectorio traffic bollard
+	if data.raw["technology"]["plastic-bar-productivity"] and data.raw["recipe"]["dect-traffic-bollard"] then
+		table.insert(data.raw["technology"]["plastic-bar-productivity"].effects, {
+			type = "change-recipe-productivity",
+			recipe = "dect-traffic-bollard",
+			change = 0.1
+		})
+		itemList["dect-traffic-bollard"] = nil
+	end
+
+	-- steel in industrial-furnace from 5dim
+	if data.raw["technology"]["steel-plate-productivity"] and data.raw["recipe"]["5d-steel-plate-industrial"] then
+		table.insert(data.raw["technology"]["steel-plate-productivity"].effects, {
+			type = "change-recipe-productivity",
+			recipe = "5d-steel-plate-industrial",
+			change = 0.1
+		})
+		itemList["steel-plate"] = nil
 	end
 
 	log("# EPR: Creating technologies #")
@@ -1235,6 +1305,7 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 	if not technology or not technology.effects or not technology.unit or not technology.unit.ingredients then
 		return
 	end
+
 	-- find tech levels
 	local tech_levels = EPR.getTechLevels({ type = "item" }, lowest_tech, special_science_packs)
 
@@ -1243,16 +1314,20 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 	technology.unit.ingredients = EPR.getIngredients(tech_levels[1].packs)
 	technology.prerequisites = EPR.getPrerequisites(lowest_tech, tech_levels[1].highest_science_pack)
 
+	local levels_per_tier = EPR.setting["levels_per_tier"]["item"] or 1
+
 	if #tech_levels > 1 then
 		-- make finite
-		technology.max_level = nil
-		technology.unit.count_formula = nil
-		technology.unit.count = math.max(math.floor(EPR.setting["formula_factor"]["item"] * EPR.setting["formula_base"]["item"] / #tech_levels / 100) * 100, 10)
+		technology.max_level = math.min(levels_per_tier, EPR.setting["max_level_value"]["item"])
+		technology.unit.count_formula = EPR.calculateFormula(1, #tech_levels, "item")
 	else
 		-- keep infinite, adjust max level
 		if not EPR.setting["infinite_tech"]["item"] then
 			technology.max_level = EPR.setting["max_level_value"]["item"]
 		end
+
+		-- adjust cost
+		technology.unit.count_formula = EPR.setting["formula_factor"]["item"].."^(L-"..((noOfTechs - 1) * levels_per_tier)..")*"..EPR.setting["formula_base"]["item"]
 	end
 
 	-- build additional levels on top until maximum level
@@ -1260,36 +1335,19 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 		local additional_techs = {}
 		for idx, tech_level in pairs(tech_levels) do
 			if idx > 1 then
-				local ingredients = EPR.getIngredients(tech_level.packs)
-
-				local prerequisites = EPR.getPrerequisites(lowest_tech, tech_level.highest_science_pack)
-				if idx > 2 then
-					table.insert(prerequisites, technology.name.."-"..tostring(idx-1))
-				else
-					table.insert(prerequisites, technology.name)
-				end
-
-				local final = idx == #tech_levels
-				local maximum_level = (final and not EPR.setting["infinite_tech"]["item"])
-									and EPR.setting["max_level_value"]["item"]
-									or "infinite"
-
-				if maximum_level == "infinite" or maximum_level >= idx then
+				local tech = EPR.createTechnologyForTechLevel(nil, nil, lowest_tech, tech_level, idx, #tech_levels)
+				if tech then
 					local next_tech = table.deepcopy(technology)
 
-					next_tech.name = next_tech.name.."-"..tostring(idx)
-					next_tech.prerequisites = prerequisites
-					next_tech.unit.ingredients = ingredients
+					next_tech.name = technology.name.."-"..((idx - 1) * levels_per_tier + 1)
+					next_tech.unit = tech.unit
+					next_tech.max_level = tech.max_level
 
-					if final then
-						next_tech.max_level = maximum_level
-						next_tech.unit.count = nil
-						next_tech.unit.count_formula = EPR.setting["formula_factor"]["item"].."^(L-"..(#tech_levels - 1)..")*"..EPR.setting["formula_base"]["item"]
-					else
-						next_tech.max_level = nil
-						next_tech.unit.count = math.max(math.floor(EPR.setting["formula_factor"]["item"] * EPR.setting["formula_base"]["item"] * idx / #tech_levels / 100) * 100, 10)
-						next_tech.unit.count_formula = nil
-					end
+					next_tech.prerequisites = tech.prerequisites
+					local prev = table.remove(next_tech.prerequisites)
+					prev = string.gsub(prev, "epr_blank%-productivity", technology.name, 1)
+					prev = string.gsub(prev, "%-1$", "", 1)
+					table.insert(next_tech.prerequisites, prev)
 
 					table.insert(additional_techs, next_tech)
 				end

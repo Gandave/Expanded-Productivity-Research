@@ -38,6 +38,13 @@ data:extend({
 		order = "a[regular]a[formula]b"
 	},
 	{
+		type = "int-setting",
+		name = "epr_levels_per_tier",
+		setting_type = "startup",
+		default_value = 1,
+		order = "a[regular]ab[tier]a"
+	},
+	{
 		type = "bool-setting",
 		name = "epr_infinite_tech",
 		setting_type = "startup",
@@ -96,6 +103,13 @@ data:extend({
 		order = "b[science]a[formula]b"
 	},
 	{
+		type = "int-setting",
+		name = "epr_levels_per_tier_science",
+		setting_type = "startup",
+		default_value = 1,
+		order = "b[science]ab[tier]a"
+	},
+	{
 		type = "bool-setting",
 		name = "epr_infinite_tech_science",
 		setting_type = "startup",
@@ -140,6 +154,13 @@ data:extend({
 		order = "b[science]c[packs]d"
 	},
 	{
+		type = "bool-setting",
+		name = "epr_adjust_existing_techs",
+		setting_type = "startup",
+		default_value = true,
+		order = "c[adjust]a"
+	},
+	{
 		type = "string-setting",
 		name = "epr_choose_recipes",
 		setting_type = "startup",
@@ -178,15 +199,3 @@ data:extend({
 		order = "e[debug]a"
 	}
 })
-
-if mods["space-age"] then
-	data:extend({
-		{
-			type = "bool-setting",
-			name = "epr_adjust_existing_techs",
-			setting_type = "startup",
-			default_value = true,
-			order = "c[space-age]a"
-		}
-	})
-end
