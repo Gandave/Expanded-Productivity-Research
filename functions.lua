@@ -43,6 +43,11 @@ EPR.setting = {
 	},
 	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")] and settings.startup[EPR.prefix("adjust_existing_techs")].value or false,
 	["choose_recipes"] = settings.startup[EPR.prefix("choose_recipes")].value,
+	["config"] = { ["barrelling"] = settings.startup[EPR.prefix("include_barrelling_recipes")].value,
+			["recycling"] = settings.startup[EPR.prefix("include_recycling_recipes")].value,
+			["infinite"] = settings.startup[EPR.prefix("include_infinite_recipes")].value,
+			["hidden"] = settings.startup[EPR.prefix("include_hidden_recipes")].value
+		},
 	["verbose"] = settings.startup[EPR.prefix("verbose")].value
 }
 
@@ -348,12 +353,27 @@ end
 
 function EPR.isRecipeInScope(recipe)
 	-- technically not in scope
-	if not recipe or not recipe.name or recipe.hidden or not recipe.results or not recipe.results[1] or not recipe.results[1].name then
+	if not recipe or not recipe.name or not recipe.results or not recipe.results[1] or not recipe.results[1].name then
 		return false
 	end
 
-	-- ignoring barreling and recycling
-	if recipe.category == "recycling" or EPR.listContains({"fill-barrel", "empty-barrel", "liquid-empty", "liquid-fill"}, recipe.subgroup) then
+	-- hidden recipes
+	if not EPR.setting["config"]["hidden"] and recipe.hidden then
+		return false
+	end
+
+	-- barrelling
+	if not EPR.setting["config"]["barrelling"] and EPR.listContains({"fill-barrel", "empty-barrel", "liquid-empty", "liquid-fill"}, recipe.subgroup) then
+		return false
+	end
+
+	-- recycling
+	if not EPR.setting["config"]["recycling"] and recipe.category == "recycling" then
+		return false
+	end
+
+	-- no inputs
+	if not EPR.setting["config"]["infinite"] and (not recipe.ingredients or #recipe.ingredients == 0) then
 		return false
 	end
 
@@ -742,7 +762,7 @@ function EPR.getTechLevels(item, lowest_tech, special_science_packs)
 	-- get science requirements from lowest_tech, i.e., check if additional science packs are needed
 	if lowest_tech then
 		local new_highest, level = EPR.addMissingSciencePacks(current_science_packs, lowest_tech)
-		if new_highest and level > EPR.getTechLevelFromSciencePack[highest_science_pack] then
+		if new_highest and level > (EPR.getTechLevelFromSciencePack[highest_science_pack] or -2) then
 			highest_science_pack = new_highest
 		end
 	end
@@ -1327,7 +1347,7 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 		end
 
 		-- adjust cost
-		technology.unit.count_formula = EPR.setting["formula_factor"]["item"].."^(L-"..((noOfTechs - 1) * levels_per_tier)..")*"..EPR.setting["formula_base"]["item"]
+		technology.unit.count_formula = EPR.setting["formula_factor"]["item"].."^L*"..EPR.setting["formula_base"]["item"]
 	end
 
 	-- build additional levels on top until maximum level

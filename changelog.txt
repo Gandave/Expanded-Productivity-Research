@@ -1,26 +1,40 @@
+Version: 1.2.1
+Date: 12.06.2025
+  Minor Features:
+    - Added setting to allow recipes without inputs to generate techs.
+    - Added setting to allow hidden recipes to generate techs.
+    - Added setting to allow barrelling recipes to generate techs.
+    - Added setting to allow recycling recipes to generate techs.
+  Changes:
+    - Recipes without any inputs (e.g. biter eggs) will now be ignored by default.
+  Bugfixes:
+    - Fixed crash when existing productivity technologies where generate with only a single level.
+    - Fixed crash when minimum and maximum science packs were set to "One planetary science".
+
+---------------------------------------------------------------------------------------------------
 Version: 1.2.0
-Date: 10.06.2025
+Date: 11.06.2025
   Features:
     - Added setting to allow multiple levels per "tier" of science.
-	- Added functionality to smoothen out the science pack costs before the final level.
+    - Added functionality to smoothen out the science pack costs before the final level.
   Changes:
-	- Added tech grouping for 5dim multi-connection tank to regular storage tanks.
+    - Added tech grouping for 5dim multi-connection tank to regular storage tanks.
   Bugfixes:
-	- Fixed tech grouping for traffic bollard from Dectorio.
-	- Fixed tech grouping for steel processing from 5dim.
+    - Fixed tech grouping for traffic bollard from Dectorio.
+    - Fixed tech grouping for steel processing from 5dim.
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 03.06.2025
   Minor Features:
-	- Added compatibility with Space Age without Space (science pack progression).
+    - Added compatibility with Space Age without Space (science pack progression).
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.1
 Date: 03.06.2025
   Minor Features:
-	- Added better grouping of dectorio recipes.
-	- Added better grouping of 5dim turret recipes.
+    - Added better grouping of dectorio recipes.
+    - Added better grouping of 5dim turret recipes.
   Changes:
     - Split landfill, concrete and foundation productivity.
   Bugfixes:
@@ -30,10 +44,10 @@ Date: 03.06.2025
 Version: 1.1.0
 Date: 02.06.2025
   Features:
-	- Hidden recipes are now ignored.
+    - Hidden recipes are now ignored.
     - Added setting to apply productivity techs to all recipes, not just intermediates. Configurable.
-	- Added functionality to group productivity techs for machine types (e.g. all assembling machines into one).
-	- Added compatibility with 5dims mods.
+    - Added functionality to group productivity techs for machine types (e.g. all assembling machines into one).
+    - Added compatibility with 5dims mods.
   Changes:
     - Removed utility science as a requirement for recipe categories (aside from regular progression if flag is set).
 
@@ -79,13 +93,13 @@ Version: 1.0.2
 Date: 22.05.2025
   Bugfixes:
     - Added optional dependencies
-	- Fixed crash on start when mods add new science packs. Progression is still not working unless explicitly added.
+    - Fixed crash on start when mods add new science packs. Progression is still not working unless explicitly added.
 
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.1
 Date: 21.05.2025
   Minor Features:
-	- Added support for More Asteroids, Forked
+    - Added support for More Asteroids, Forked
   Bugfixes:
     - Adjusted productivity technologies are infinite again (damn typo)
 
@@ -94,8 +108,8 @@ Version: 1.0.0
 Date: 18.05.2025
   Features:
     - Automatically scans for existing productivity research (not sure about modded technologies, however).
-	- Automatically scans for recipes that allow productivity.
-	- Creates new technologies for items with productivity for all their recipes with a progression similar to mining productivity.
-	- Progression can be configured in the settings.
-	- Progression can also be applied to already existing productivity technologies.
-	- Science packs use a separate progression track.
+    - Automatically scans for recipes that allow productivity.
+    - Creates new technologies for items with productivity for all their recipes with a progression similar to mining productivity.
+    - Progression can be configured in the settings.
+    - Progression can also be applied to already existing productivity technologies.
+    - Science packs use a separate progression track.

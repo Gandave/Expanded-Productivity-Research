@@ -165,8 +165,36 @@ data:extend({
 		name = "epr_choose_recipes",
 		setting_type = "startup",
 		default_value = "intermediate",
-		order = "d[further]a[recipes]",
+		order = "d[further]a[recipes]a",
 		allowed_values = { "intermediate", "intermediate_tiles", "intermediate_ammo", "intermediate_modules", "intermediate_tiles_ammo", "intermediate_tiles_modules", "intermediates_tiles_ammo_modules", "intermediate_ammo_modules", "all_but_equipment", "all" }
+	},
+	{
+		type = "bool-setting",
+		name = "epr_include_barrelling_recipes",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[further]a[recipes]b[options]a"
+	},
+	{
+		type = "bool-setting",
+		name = "epr_include_recycling_recipes",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[further]a[recipes]b[options]b"
+	},
+	{
+		type = "bool-setting",
+		name = "epr_include_infinite_recipes",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[further]a[recipes]b[options]c"
+	},
+	{
+		type = "bool-setting",
+		name = "epr_include_hidden_recipes",
+		setting_type = "startup",
+		default_value = false,
+		order = "d[further]a[recipes]b[options]d"
 	},
 	{
 		type = "bool-setting",
