@@ -1,3 +1,9 @@
+Version: 1.2.2
+Date: 12.06.2025
+  Bugfixes:
+    - Fixed crash when existing productivity technologies use count instead of count formula.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.2.1
 Date: 12.06.2025
   Minor Features:

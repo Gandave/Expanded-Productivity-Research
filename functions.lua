@@ -1342,12 +1342,15 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 		technology.unit.count_formula = EPR.calculateFormula(1, #tech_levels, "item")
 	else
 		-- keep infinite, adjust max level
-		if not EPR.setting["infinite_tech"]["item"] then
+		if EPR.setting["infinite_tech"]["item"] then
+			technology.max_level = "infinite"
+		else
 			technology.max_level = EPR.setting["max_level_value"]["item"]
 		end
 
 		-- adjust cost
 		technology.unit.count_formula = EPR.setting["formula_factor"]["item"].."^L*"..EPR.setting["formula_base"]["item"]
+		technology.unit.count = nil
 	end
 
 	-- build additional levels on top until maximum level
