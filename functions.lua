@@ -1329,9 +1329,24 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 	-- find tech levels
 	local tech_levels = EPR.getTechLevels({ type = "item" }, lowest_tech, special_science_packs)
 
+	if not tech_levels or #tech_levels == 0 then
+		if EPR.setting["verbose"] then
+			log("> EPR: no tech levels generated for "..EPR.toString(technology.name))
+		end
+		return
+	end
+
+	local ingredients = EPR.getIngredients(tech_levels[1].packs)
+	if not EPR.hasValidLab(ingredients) then
+		if EPR.setting["verbose"] then
+			log("> EPR: no valid lab for "..EPR.toString(technology.name).." - skipping adjustment")
+		end
+		return
+	end
+
 	-- update tech according to lowest tech level
 	-- always adjust ingredients and prerequisites
-	technology.unit.ingredients = EPR.getIngredients(tech_levels[1].packs)
+	technology.unit.ingredients = ingredients
 	technology.prerequisites = EPR.getPrerequisites(lowest_tech, tech_levels[1].highest_science_pack)
 
 	local levels_per_tier = EPR.setting["levels_per_tier"]["item"] or 1
@@ -1339,6 +1354,7 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 	if #tech_levels > 1 then
 		-- make finite
 		technology.max_level = math.min(levels_per_tier, EPR.setting["max_level_value"]["item"])
+		technology.unit.count = nil
 		technology.unit.count_formula = EPR.calculateFormula(1, #tech_levels, "item")
 	else
 		-- keep infinite, adjust max level

@@ -1,3 +1,12 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.2.3
+Date: 12.06.2025
+  Bugfixes:
+    - Fixed crash when existing productivity technologies use count instead of count formula (forgot one case last time).
+	- Fixed crash when adjusting existing productivity technologies creates an unresearchable technology (no valid lab).
+	- Fixed crash with More Long Inserters due to inserters being removed by the mod.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.2.2
 Date: 12.06.2025
   Bugfixes:
