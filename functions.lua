@@ -85,7 +85,7 @@ EPR.setting = {
 }
 
 function EPR.calculateFormulaBaseCustom(itemType, tier)
-	return EPR.setting["scaling_custom"][itemType][tier] or EPR.setting["scaling_custom"][itemType][-1]
+	return EPR.setting["scaling_custom"][itemType][math.max(1,math.min(tier, #EPR.setting["scaling_custom"][itemType]))]
 end
 
 function EPR.calculateFormulaBaseLinear(itemType, tier)
@@ -678,6 +678,12 @@ end
 function EPR.calculateFormula(tier, num_tiers, itemType)
 	local levels_per_tier = EPR.setting["levels_per_tier"][itemType] or 1
 	local calc_tier = ((EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1) - num_tiers) + tier
+	if not EPR.setting["skip_military"][itemType] then
+		calc_tier = calc_tier + 1
+	end
+	if not EPR.setting["skip_utility"][itemType] then
+		calc_tier = calc_tier + 1
+	end
 	local lower_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier)
 	local higher_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier + 1)
 	if tier + 1 == num_tiers then
@@ -814,7 +820,7 @@ function EPR.getPrerequisites(lowest_tech, highest_science_pack)
 					if not tech_added and EPR.isSciencePackRequired(pack, lowest_tech) then
 						table.insert(result, lowest_tech)
 						tech_added = true
-					else
+					elseif pack ~= lowest_tech then
 						table.insert(result, pack)
 					end
 				end
