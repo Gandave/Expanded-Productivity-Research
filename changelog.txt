@@ -1,4 +1,25 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.3.0
+Date: 17.06.2025
+  Major Features:
+    - Added option to "cache" intermediates. If a mod modifies the "allow_productivity" property of recipes, activate this to attempt to mark recipes before they get changed so that the "intermediates only" option will still (more or less) correctly recognize which items are intermediates, rather than adding all recipes/items.
+	- Added setting to determine the science cost scaling of the non-infinite levels of each productivity technology or set a custom price for each level.
+  Minor Features:
+    - Added functionality to ignore outputs that are not affected by productivity ("ignored_by_stats"). If a recipe has no outputs which allow for productivity, the recipe is ignored as the productivity tech would be useless.
+    - Added setting to determine the amount of productivity each level of technology provides (default 10%).
+  Changes:
+    - Setting "overwrite blacklist" removed. Instead, the hardcoded list is set as default value (remember to adjust the value if upgrading from previous versions).
+
+---------------------------------------------------------------------------------------------------
+Version: 1.2.4
+Date: 13.06.2025
+  Minor Features:
+    - Added whitelist settings to explicitly add items or recipes.
+	- Added "no recipe" preset for the rare case where you want only select technologies being generated.
+  Bugfixes:
+    - Blacklist is now actually correctly parsed.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.2.3
 Date: 12.06.2025
   Bugfixes:

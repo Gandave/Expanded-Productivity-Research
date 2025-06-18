@@ -4,6 +4,27 @@ function EPR.prefix(name)
     return "epr_" .. name
 end
 
+function EPR.toString(object, name)
+	result = ""
+	if name then
+		result = name.." = "
+	end
+	if type(object) == "table" then
+		result = result.."{ "
+		for a,b in pairs(object) do
+			result = result..EPR.toString(b, a)..", "
+		end
+		result = result.." }"
+	else
+		result = result..tostring(object)
+	end
+	return result
+end
+
+function EPR.log(name, object)
+	log(EPR.toString(object, name))
+end
+
 EPR.setting = {
 	["formula_factor"] = {
 		["item"] = settings.startup[EPR.prefix("formula_factor")].value,
@@ -13,9 +34,21 @@ EPR.setting = {
 		["item"] = settings.startup[EPR.prefix("formula_base")].value,
 		["science_pack"] = settings.startup[EPR.prefix("formula_base_science")].value
 	},
+	["infinite_base"] = {
+		["item"] = settings.startup[EPR.prefix("formula_factor")].value * settings.startup[EPR.prefix("formula_base")].value,
+		["science_pack"] = settings.startup[EPR.prefix("formula_factor_science")].value * settings.startup[EPR.prefix("formula_base_science")].value
+	},
+	["scaling"] = {
+		["item"] = settings.startup[EPR.prefix("finite_tech_scaling")].value,
+		["science_pack"] = settings.startup[EPR.prefix("finite_tech_scaling_science")].value
+	},
 	["levels_per_tier"] = {
 		["item"] = settings.startup[EPR.prefix("levels_per_tier")].value,
 		["science_pack"] = settings.startup[EPR.prefix("levels_per_tier_science")].value
+	},
+	["effect"] = {
+		["item"] = settings.startup[EPR.prefix("productivity_per_level")].value,
+		["science_pack"] = settings.startup[EPR.prefix("productivity_per_level_science")].value
 	},
 	["infinite_tech"] = {
 		["item"] = settings.startup[EPR.prefix("infinite_tech")].value,
@@ -43,12 +76,88 @@ EPR.setting = {
 	},
 	["adjust_existing_techs"] = settings.startup[EPR.prefix("adjust_existing_techs")] and settings.startup[EPR.prefix("adjust_existing_techs")].value or false,
 	["choose_recipes"] = settings.startup[EPR.prefix("choose_recipes")].value,
-	["config"] = { ["barrelling"] = settings.startup[EPR.prefix("include_barrelling_recipes")].value,
+	["config"] = { ["cache"] = settings.startup[EPR.prefix("remember_intermediate")].value,
 			["recycling"] = settings.startup[EPR.prefix("include_recycling_recipes")].value,
 			["infinite"] = settings.startup[EPR.prefix("include_infinite_recipes")].value,
 			["hidden"] = settings.startup[EPR.prefix("include_hidden_recipes")].value
 		},
 	["verbose"] = settings.startup[EPR.prefix("verbose")].value
+}
+
+function EPR.calculateFormulaBaseCustom(itemType, tier)
+	return EPR.setting["scaling_custom"][itemType][tier] or EPR.setting["scaling_custom"][itemType][-1]
+end
+
+function EPR.calculateFormulaBaseLinear(itemType, tier)
+	local max_tiers = EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1
+	local infinite_base = EPR.setting["infinite_base"][itemType]
+	return EPR.roundBest(tier * infinite_base / max_tiers)
+end
+
+function EPR.calculateFormulaBaseLinearHalved(itemType, tier)
+	return EPR.calculateFormulaBaseLinear(itemType, tier) / 2
+end
+
+function EPR.calculateFormulaBaseExponential(itemType, tier)
+	local max_tiers = EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1
+	local infinite_base = EPR.setting["infinite_base"][itemType]
+	return EPR.roundBest(infinite_base * EPR.setting["formula_factor"][itemType] ^ (tier - max_tiers))
+end
+
+function EPR.calculateFormulaBaseExponentialHalved(itemType, tier)
+	return EPR.calculateFormulaBaseExponential(itemType, tier) / 2
+end
+
+do
+	local list_item = {}
+	local list_science = {}
+	for str in string.gmatch(settings.startup[EPR.prefix("finite_tech_scaling_custom")].value, "[^/]+") do
+		table.insert(list_item, str)
+	end
+	for str in string.gmatch(settings.startup[EPR.prefix("finite_tech_scaling_custom_science")].value, "[^/]+") do
+		table.insert(list_science, str)
+	end
+
+	EPR.setting["scaling_custom"] = { ["item"] = list_item, ["science_pack"] = list_science }
+	EPR.setting["scaling_function"] = {}
+
+	if EPR.setting["scaling"]["item"] == "custom" then
+		EPR.setting["scaling_function"]["item"] = EPR.calculateFormulaBaseCustom
+	elseif EPR.setting["scaling"]["item"] == "exponential" then
+		EPR.setting["scaling_function"]["item"] = EPR.calculateFormulaBaseExponential
+	elseif EPR.setting["scaling"]["item"] == "exponential_halved" then
+		EPR.setting["scaling_function"]["item"] = EPR.calculateFormulaBaseExponentialHalved
+	elseif EPR.setting["scaling"]["item"] == "linear" then
+		EPR.setting["scaling_function"]["item"] = EPR.calculateFormulaBaseLinear
+	elseif EPR.setting["scaling"]["item"] == "linear_halved" then
+		EPR.setting["scaling_function"]["item"] = EPR.calculateFormulaBaseLinearHalved
+	end
+
+	if EPR.setting["scaling"]["science_pack"] == "custom" then
+		EPR.setting["scaling_function"]["science_pack"] = EPR.calculateFormulaBaseCustom
+	elseif EPR.setting["scaling"]["science_pack"] == "exponential" then
+		EPR.setting["scaling_function"]["science_pack"] = EPR.calculateFormulaBaseExponential
+	elseif EPR.setting["scaling"]["science_pack"] == "exponential_halved" then
+		EPR.setting["scaling_function"]["science_pack"] = EPR.calculateFormulaBaseExponentialHalved
+	elseif EPR.setting["scaling"]["science_pack"] == "linear" then
+		EPR.setting["scaling_function"]["science_pack"] = EPR.calculateFormulaBaseLinear
+	elseif EPR.setting["scaling"]["science_pack"] == "linear_halved" then
+		EPR.setting["scaling_function"]["science_pack"] = EPR.calculateFormulaBaseLinearHalved
+	end
+end
+
+EPR.constMaxNumberOfTiers = {
+	["automation-science"] = 1,
+	["logistic-science"] = 2,
+	["military-science "] = 2,
+	["chemical-science"] = 3,
+	["production-science"] = 4,
+	["utility-science"] = 4,
+	["space-science"] = 5,
+	["one-planetary-science"] = 6,
+	["any-planetary-science"] = 6,
+	["all-planetary-science"] = 6,
+	["promethium-science"] = 7
 }
 
 EPR.convertRecipeCategoryToAdvancedSciencePack = {
@@ -165,6 +274,10 @@ if mods["SpaceAgeWithoutSpace"] then
 	EPR.constSciencePacks["any-planetary-science"]["space-science-pack"] = false
 	EPR.constSciencePacks["all-planetary-science"]["space-science-pack"] = false
 	EPR.getTechLevelFromSciencePack["space-science-pack"] = 10
+	EPR.constMaxNumberOfTiers["one-planetary-science"] = 5
+	EPR.constMaxNumberOfTiers["any-planetary-science"] = 5
+	EPR.constMaxNumberOfTiers["all-planetary-science"] = 5
+	EPR.constMaxNumberOfTiers["space-science"] = 6
 end
 
 function EPR.getHighestKey(list)
@@ -196,27 +309,6 @@ function EPR.listContains(list, value)
 	end
 
 	return false
-end
-
-function EPR.toString(object, name)
-	result = ""
-	if name then
-		result = name.." = "
-	end
-	if type(object) == "table" then
-		result = result.."{ "
-		for a,b in pairs(object) do
-			result = result..EPR.toString(b, a)..", "
-		end
-		result = result.." }"
-	else
-		result = result..tostring(object)
-	end
-	return result
-end
-
-function EPR.log(name, object)
-	log(EPR.toString(object, name))
 end
 
 function EPR.getItem(item_name)
@@ -351,19 +443,19 @@ function EPR.hasValidLab(ingredients)
 	return false
 end
 
-function EPR.isRecipeInScope(recipe)
+function EPR.isRecipeInScope(recipe, list_intermediates)
 	-- technically not in scope
 	if not recipe or not recipe.name or not recipe.results or not recipe.results[1] or not recipe.results[1].name then
 		return false
 	end
 
-	-- hidden recipes
-	if not EPR.setting["config"]["hidden"] and recipe.hidden then
+	-- setting: none
+	if EPR.setting["choose_recipes"] == "none" then
 		return false
 	end
 
-	-- barrelling
-	if not EPR.setting["config"]["barrelling"] and EPR.listContains({"fill-barrel", "empty-barrel", "liquid-empty", "liquid-fill"}, recipe.subgroup) then
+	-- hidden recipes
+	if not EPR.setting["config"]["hidden"] and recipe.hidden then
 		return false
 	end
 
@@ -377,7 +469,11 @@ function EPR.isRecipeInScope(recipe)
 		return false
 	end
 
-	if recipe.allow_productivity then
+	if list_intermediates then
+		if EPR.listContains(list_intermediates, recipe.name) then
+			return true
+		end
+	elseif recipe.allow_productivity then
 		return true
 	end
 
@@ -569,22 +665,26 @@ function EPR.roundToFactor(value, factor)
 	return math.floor(value / factor) * factor
 end
 
-function EPR.calculateFormula(tier, num_tiers, itemType)
-	-- linear extrapolation of exponentional curve toward requirements for first infinite level
-	local levels_per_tier = EPR.setting["levels_per_tier"][itemType] or 1
-	local divisor = num_tiers
-	if not EPR.setting["infinite_tech"][itemType] then
-		divisor = math.min(divisor, math.ceil(EPR.setting["max_level_value"][itemType] / levels_per_tier))
+function EPR.roundBest(value)
+	if value < 50 then
+		return EPR.roundToFactor(value, 10)
+	elseif value < 100 then
+		return EPR.roundToFactor(value, 50)
+	else
+		return EPR.roundToFactor(value, 100)
 	end
+end
 
-	local chunk = math.sqrt(EPR.setting["formula_factor"][itemType] * EPR.setting["formula_base"][itemType]) / divisor
-	local last_base = math.max(10, (tier * chunk) ^ 2)
-	local next_base = math.max(10, ((tier + 1) * chunk) ^ 2)
-	local step = (next_base - last_base) / levels_per_tier
-	-- some rounding to avoid "odd" numbers
-	local factor = math.max(10, 10 ^ math.floor(math.log10(step)))
-
-	return EPR.roundToFactor(step, factor).." * (L - "..((tier - 1) * levels_per_tier + 1)..") + "..math.max(factor, EPR.roundToFactor(last_base, factor))
+function EPR.calculateFormula(tier, num_tiers, itemType)
+	local levels_per_tier = EPR.setting["levels_per_tier"][itemType] or 1
+	local calc_tier = ((EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1) - num_tiers) + tier
+	local lower_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier)
+	local higher_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier + 1)
+	if tier + 1 == num_tiers then
+		higher_base = EPR.setting["infinite_base"][itemType]
+	end
+	local step = EPR.roundBest((higher_base - lower_base) / (EPR.setting["levels_per_tier"][itemType] or 1))
+	return step.." * (L - "..((tier - 1) * levels_per_tier + 1)..") + "..lower_base
 end
 
 function EPR.getLowestTech(first, second)
@@ -854,7 +954,6 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 	if final then
 		unit["count_formula"] = EPR.setting["formula_factor"][item_type].."^(L-"..((noOfTechs - 1) * levels_per_tier)..")*"..EPR.setting["formula_base"][item_type]
 	else
-		-- if not infinite will give a roughly exponential progression with rounded number of science packs
 		unit["count_formula"] = EPR.calculateFormula(tier, noOfTechs, item_type)
 	end
 
@@ -895,11 +994,36 @@ function EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_l
 	return tech
 end
 
-function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, blacklist_recipe)
+function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, blacklist_recipe, whitelist_products, whitelist_recipe)
 	log("### EPR: Generating all productivity techs ###")
 
 	if EPR.setting["verbose"] then
 		EPR.log("EPR settings", EPR.setting)
+		EPR.log("EPR blacklist techs", blacklist_techs)
+		EPR.log("EPR blacklist products", blacklist_products)
+		EPR.log("EPR blacklist recipes", blacklist_recipe)
+		EPR.log("EPR whitelist products", whitelist_products)
+		EPR.log("EPR whitelist recipes", whitelist_recipe)
+	end
+
+	local list_intermediates
+	if EPR.setting["config"]["cache"] then
+		EPR.updateIntermediateList()
+
+		local tech = data.raw["technology"]["epr_intermediate_recipes"]
+		if tech and tech.effects then
+			list_intermediates = {}
+			for _, item in pairs(tech.effects) do
+				if item and item.recipe then
+					table.insert(list_intermediates, item.recipe)
+				end
+			end
+			if EPR.setting["verbose"] then
+				EPR.log("EPR found the following intermediates", list_intermediates)
+			end
+			data.raw["technology"]["epr_intermediate_recipes"] = nil
+			data.raw["technology"]["epr_nonintermediate_recipes"] = nil
+		end
 	end
 
 	log("# EPR: Scanning technologies #")
@@ -911,7 +1035,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	local recipes_enabled_at_start = {}
 	for tech_name, tech in pairs(data.raw["technology"]) do
 		if tech and tech.effects then
-			if not EPR.listContains(blacklist_recipe, tech_name) then
+			if not EPR.listContains(blacklist_techs, tech_name) then
 				for _, effect in pairs(tech.effects) do
 					if effect.type == "change-recipe-productivity" then
 						local recipe = data.raw["recipe"][effect.recipe]
@@ -947,50 +1071,50 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	-- create list of items (and consequently of productivity technologies)
 	local itemList = {}
 	for _, recipe in pairs(data.raw["recipe"]) do
-		if EPR.isRecipeInScope(recipe) then
-			-- collect crafting categories for debug purposes
-			local cat = recipe.category
-			local addcat = true
-			for _, v in pairs(categs) do
-				addcat = addcat and v ~= cat
-			end
-			if addcat then
-				table.insert(categs, cat)
-			end
+		-- collect crafting categories for debug purposes
+		local cat = recipe.category
+		local addcat = true
+		for _, v in pairs(categs) do
+			addcat = addcat and v ~= cat
+		end
+		if addcat then
+			table.insert(categs, cat)
+		end
 
-			if not EPR.listContains(exclude_recipe, recipe.name) then
-				local idx = 1
-				local finished = false
-				while not finished and idx <= #recipe.results do
-					local item_name = recipe.results[idx].name
-					if not EPR.listContains(blacklist_products, item_name) then
-						-- add to item list
-						if EPR.setting["verbose"] then
-							log("EPR: Adding recipe "..tostring(recipe.name).." to item "..item_name)
-						end
-						local effect = {
-							type = "change-recipe-productivity",
-							recipe = recipe.name,
-							change = 0.1
-						}
-						local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
-						local lowest_tech = recipes_lowest_tech[recipe.name]
-						if itemList[item_name] then
-							table.insert(itemList[item_name].effects, effect)
-							itemList[item_name].enabled_at_start = itemList[item_name].enabled_at_start or recipe.enabled ~= false
-							itemList[item_name].lowest_tech = EPR.getLowestTech(itemList[item_name].lowest_tech, lowest_tech)
-						else
-							itemList[item_name] = { effects = { effect }, special_packs = {}, enabled_at_start = recipe.enabled ~= false, lowest_tech = lowest_tech }
-						end
-						if sp then
-							local current = (itemList[item_name].special_packs[sp] or 0) + 1
-							itemList[item_name].special_packs[sp] = current
-						end
-						finished = true
+		local idx = 1
+		local finished = false
+		while not finished and recipe.results and idx <= #recipe.results do
+			local result = recipe.results[idx]
+			local item_name = result.name
+			if (not result.ignored_by_stats or result.ignored_by_stats ~= result.amount)
+					and (not EPR.listContains(blacklist_products, item_name) or EPR.listContains(whitelist_products, item_name)) then
+				finished = true
+				if EPR.listContains(whitelist_recipe, recipe.name) or EPR.listContains(whitelist_products, item_name) or (EPR.isRecipeInScope(recipe, list_intermediates) and not EPR.listContains(exclude_recipe, recipe.name)) then
+					-- add to item list
+					if EPR.setting["verbose"] then
+						log("EPR: Adding recipe "..tostring(recipe.name).." to item "..item_name)
+					end
+					local effect = {
+						type = "change-recipe-productivity",
+						recipe = recipe.name,
+						change = (EPR.setting["effect"][EPR.getItemType(EPR.getItem(item_name))] or 10) / 100
+					}
+					local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
+					local lowest_tech = recipes_lowest_tech[recipe.name]
+					if itemList[item_name] then
+						table.insert(itemList[item_name].effects, effect)
+						itemList[item_name].enabled_at_start = itemList[item_name].enabled_at_start or recipe.enabled ~= false
+						itemList[item_name].lowest_tech = EPR.getLowestTech(itemList[item_name].lowest_tech, lowest_tech)
 					else
-						idx = idx + 1
+						itemList[item_name] = { effects = { effect }, special_packs = {}, enabled_at_start = recipe.enabled ~= false, lowest_tech = lowest_tech }
+					end
+					if sp then
+						local current = (itemList[item_name].special_packs[sp] or 0) + 1
+						itemList[item_name].special_packs[sp] = current
 					end
 				end
+			else
+				idx = idx + 1
 			end
 		end
 	end
@@ -1206,6 +1330,9 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		EPR.combineItems(itemList, "dect-base-water", "dect-base-deepwater", "dect-base-water-green", "dect-base-deepwater-green")
 		EPR.combineItemSubgroup(itemList, "landfill", "landscaping-trees")
 		EPR.combineItemSubgroup(itemList, "landfill", "landscaping-rocks")
+	else
+		EPR.combineItems(itemList, "artificial-jellynut-soil", "overgrowth-jellynut-soil")
+		EPR.combineItems(itemList, "artificial-yumako-soil", "overgrowth-yumako-soil")
 	end
 
 	-- 5dim-turrets
@@ -1229,7 +1356,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		table.insert(data.raw["technology"]["plastic-bar-productivity"].effects, {
 			type = "change-recipe-productivity",
 			recipe = "dect-traffic-bollard",
-			change = 0.1
+			change = (EPR.setting["effect"]["item"] or 10) / 100
 		})
 		itemList["dect-traffic-bollard"] = nil
 	end
@@ -1239,7 +1366,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 		table.insert(data.raw["technology"]["steel-plate-productivity"].effects, {
 			type = "change-recipe-productivity",
 			recipe = "5d-steel-plate-industrial",
-			change = 0.1
+			change = (EPR.setting["effect"]["item"] or 10) / 100
 		})
 		itemList["steel-plate"] = nil
 	end
@@ -1348,6 +1475,16 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 	-- always adjust ingredients and prerequisites
 	technology.unit.ingredients = ingredients
 	technology.prerequisites = EPR.getPrerequisites(lowest_tech, tech_levels[1].highest_science_pack)
+	for _, effect in pairs(technology.effects) do
+		if effect and effect.type == "change-recipe-productivity" then
+			local item_type = "item"
+			local rec = data.raw["recipe"][effect.recipe]
+			if rec then
+				item_type = EPR.getItemType(EPR.getItem(rec.results[1].name))
+			end
+			effect.change = (EPR.setting["effect"][item_type] or 10) / 100
+		end
+	end
 
 	local levels_per_tier = EPR.setting["levels_per_tier"]["item"] or 1
 
@@ -1395,6 +1532,86 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 
 		if #additional_techs > 0 then
 			data:extend(additional_techs)
+		end
+	end
+end
+
+function EPR.initializeIntermediateList()
+	local intermediate = {}
+	local non_intermediate = {}
+
+	for name, recipe in pairs(data.raw["recipe"]) do
+		if recipe then
+			if recipe.allow_productivity then
+				table.insert(intermediate, { type = "unlock-recipe", recipe = name })
+			else
+				table.insert(non_intermediate, { type = "unlock-recipe", recipe = name })
+			end
+		end
+	end
+
+	local technology_intermediate = {
+		type = "technology",
+		name = "epr_intermediate_recipes",
+		icon = "__base__/graphics/technology/electronics.png",
+		icon_size = 256,
+		effects = intermediate,
+		unit =
+		{
+			count = 10,
+			ingredients = {{"automation-science-pack", 1}},
+			time = 10
+		}
+	}
+
+	local technology_non_intermediate = {
+		type = "technology",
+		name = "epr_non_intermediate_recipes",
+		icon = "__base__/graphics/technology/steam-power.png",
+		icon_size = 256,
+		effects = non_intermediate,
+		unit =
+		{
+			count = 10,
+			ingredients = {{"automation-science-pack", 1}},
+			time = 10
+		}
+	}
+
+	data:extend({ technology_intermediate, technology_non_intermediate })
+end
+
+function EPR.updateIntermediateList()
+	local intermediate = data.raw["technology"]["epr_intermediate_recipes"].effects
+	local non_intermediate = data.raw["technology"]["epr_non_intermediate_recipes"].effects
+
+	for name, recipe in pairs(data.raw["recipe"]) do
+		if recipe then
+			local found = false
+
+			for _, item in pairs(intermediate) do
+				if item and item.recipe == name then
+					found = true
+					break
+				end
+			end
+
+			if not found then
+				for _, item in pairs(non_intermediate) do
+					if item and item.recipe == name then
+						found = true
+						break
+					end
+				end
+			end
+
+			if not found then
+				if recipe.allow_productivity then
+					table.insert(intermediate, { type = "unlock-recipe", recipe = name })
+				else
+					table.insert(non_intermediate, { type = "unlock-recipe", recipe = name })
+				end
+			end
 		end
 	end
 end

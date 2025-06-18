@@ -38,11 +38,34 @@ data:extend({
 		order = "a[regular]a[formula]b"
 	},
 	{
+		type = "string-setting",
+		name = "epr_finite_tech_scaling",
+		setting_type = "startup",
+		default_value = "exponential_halved",
+		order = "a[regular]b[scaling]a",
+		allowed_values = { "exponential", "exponential_halved", "linear", "linear_halved", "custom" }
+	},
+	{
+		type = "string-setting",
+		name = "epr_finite_tech_scaling_custom",
+		setting_type = "startup",
+		default_value = "",
+		allow_blank = true,
+		order = "a[regular]b[scaling]b"
+	},
+	{
 		type = "int-setting",
 		name = "epr_levels_per_tier",
 		setting_type = "startup",
 		default_value = 1,
 		order = "a[regular]ab[tier]a"
+	},
+	{
+		type = "int-setting",
+		name = "epr_productivity_per_level",
+		setting_type = "startup",
+		default_value = 10,
+		order = "a[regular]ac[effect]a"
 	},
 	{
 		type = "bool-setting",
@@ -103,11 +126,34 @@ data:extend({
 		order = "b[science]a[formula]b"
 	},
 	{
+		type = "string-setting",
+		name = "epr_finite_tech_scaling_science",
+		setting_type = "startup",
+		default_value = "exponential_halved",
+		order = "b[science]b[scaling]a",
+		allowed_values = { "linear", "linear_halved", "exponential", "exponential_halved", "custom" }
+	},
+	{
+		type = "string-setting",
+		name = "epr_finite_tech_scaling_custom_science",
+		setting_type = "startup",
+		default_value = "",
+		allow_blank = true,
+		order = "b[science]b[scaling]b"
+	},
+	{
 		type = "int-setting",
 		name = "epr_levels_per_tier_science",
 		setting_type = "startup",
 		default_value = 1,
 		order = "b[science]ab[tier]a"
+	},
+	{
+		type = "int-setting",
+		name = "epr_productivity_per_level_science",
+		setting_type = "startup",
+		default_value = 10,
+		order = "b[science]ac[effect]a"
 	},
 	{
 		type = "bool-setting",
@@ -166,14 +212,14 @@ data:extend({
 		setting_type = "startup",
 		default_value = "intermediate",
 		order = "d[further]a[recipes]a",
-		allowed_values = { "intermediate", "intermediate_tiles", "intermediate_ammo", "intermediate_modules", "intermediate_tiles_ammo", "intermediate_tiles_modules", "intermediates_tiles_ammo_modules", "intermediate_ammo_modules", "all_but_equipment", "all" }
+		allowed_values = { "none", "intermediate", "intermediate_tiles", "intermediate_ammo", "intermediate_modules", "intermediate_tiles_ammo", "intermediate_tiles_modules", "intermediates_tiles_ammo_modules", "intermediate_ammo_modules", "all_but_equipment", "all" }
 	},
 	{
 		type = "bool-setting",
-		name = "epr_include_barrelling_recipes",
+		name = "epr_remember_intermediate",
 		setting_type = "startup",
 		default_value = false,
-		order = "d[further]a[recipes]b[options]a"
+		order = "d[further]a[recipes]ab"
 	},
 	{
 		type = "bool-setting",
@@ -197,18 +243,11 @@ data:extend({
 		order = "d[further]a[recipes]b[options]d"
 	},
 	{
-		type = "bool-setting",
-		name = "epr_overwrite_blacklist",
-		setting_type = "startup",
-		default_value = false,
-		order = "d[further]m[blacklist]a"
-	},
-	{
 		type = "string-setting",
 		name = "epr_blacklist_item",
 		setting_type = "startup",
 		allow_blank = true,
-		default_value = "",
+		default_value = "jellynut-seed,yumako-seed,cargo-landing-pad,arithmetic-combinator,decider-combinator,constant-combinator,power-switch,programmable-speaker,display-panel,selector-combinator",
 		order = "d[further]m[blacklist]b"
 	},
 	{
@@ -216,8 +255,24 @@ data:extend({
 		name = "epr_blacklist_recipe",
 		setting_type = "startup",
 		allow_blank = true,
-		default_value = "",
+		default_value = "nuclear-fuel-reprocessing,carbonic-asteroid-reprocessing,metallic-asteroid-reprocessing,oxide-asteroid-reprocessing,vgal-promethium-asteroid-chunk-reprocessing",
 		order = "d[further]m[blacklist]c"
+	},
+	{
+		type = "string-setting",
+		name = "epr_whitelist_item",
+		setting_type = "startup",
+		allow_blank = true,
+		default_value = "",
+		order = "d[further]n[whitelist]a"
+	},
+	{
+		type = "string-setting",
+		name = "epr_whitelist_recipe",
+		setting_type = "startup",
+		allow_blank = true,
+		default_value = "",
+		order = "d[further]n[whitelist]b"
 	},
 	{
 		type = "bool-setting",

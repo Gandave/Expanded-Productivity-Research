@@ -14,6 +14,14 @@ With version 1.1 I added functionality to allow more productivity techs than jus
 
 With version 1.2 I added functionality to allow multiple levels per "tier" of science. Meaning that there could now be several levels with only automation and logistic science packs being required (but with increasing cost), which are followed by several levels with automation, logistic and chemical science, and so on. This can be adjusted with the setting "Levels per tier" which defaults to 1. Costs should be dynamically generated to give a "nice-ish" increase in cost until the first "infinite" level is reached which has the costs as defined in the settings.
 
+# Version 1.3
+
+With version 1.3 I made it possible to combine EPR with mods that add productivity to all recipes without it clogging up the tech tree. The mod now stores all recipes before they get changed and therefore knows what was an intermediate before. For best effect, it needs to run directly before the mod that changes productivity, which means the other mod would have to add this mod as a dependency. Nevertheless, some gaps for modded recipes might occur and would require manual fixing with the white- and blacklist.
+
+The second new feature is the ability to customize the scaling of costs for the "finite" levels. Before, the mod tried to give a smooth progression from 0 to whatever the first "infinite" level costs. Now, you can select whether costs should rise linearly or exponentially (i.e., start lower, but increase more later on) or even put in a custom scaling. Between each tier, levels are linearly interpolated with some rounding to make smoother numbers.
+
+The third (minor) feature is that the mod now ignores outputs which are not affected by productivity (like filling and emptying barrels). Those technologies wouldn't have had an effect in the first place.
+
 # Mod compatibility
 
 The generation of technologies is dynamic and should be flexible enough to be compatible with most mods right out of the gate. However, other mods might need to be flagged as optional dependencies if they add/change recipes in the final phase of initialization.
@@ -52,9 +60,9 @@ There are two sets of settings, one for "regular" intermediates and one for scie
 
 The cost factor and cost base determine the research cost formula, which is FACTOR ^ level * BASE. The default is 1.5 and 1000 which matches the Space Age techs (1500, 2250, 3375, etc.).
 
-The non-infinite levels require a fraction of science packs based on how many levels there are in total. The increase in cost is calculated dynamically and roughly exponential. For example, a tech could start as cheap as 10 science packs for the first level, then 100 for the next, then 300, then 700 and finally 1500, at which point to cost factor setting determines the increase.
+The cost of non-infinite levels is based on the chosen progression. Linear scaling means that the numbers are simply interpolated between 0 and what the first "infinite" level of the technology costs. Exponential scaling starts slower and means larger increases later on, which is closer to the cost of many technologies in the base game. All numbers are rounded somewhat to make for cleaner numbers (e.g., 100 instead of 116). If a technology has fewer tiers, because it requires additional science packs for even the first level, the cost is analogous to what it would cost, if it didn't require any science packs at all. For example, by default, the automation+logistic tier costs 200, then 300 for chemical science, then 400 for production science. If an item requires production science to research, the first level starts with production science and requires 400, not just 200.
 
-Levels per tier can be used to generate more than one technology level before the next science pack is added. For example, you might have five levels requiring only automation science, then another five which require automation and logistic science followed by five level which additionally require chemical science, and so on.
+Levels per tier can be used to generate more than one technology level before the next science pack is added. For example, you might have five levels requiring only automation science, then another five which require automation and logistic science followed by five level which additionally require chemical science, and so on. The cost of each level is a (rounded) linear interpolation between the previous and the next "tier".
 
 Infinite tech and maximum level can be used to limit the maximum available technology level, since productivity is capped at 300% (barring other mods that change this). Or if you simply prefer to have a custom limit on the productivity gained by this mod.
 
@@ -62,13 +70,16 @@ Minimum and maximum required science packs determine where a technology can earl
 
 The setting "One Planetary Science" means that the infinite level requires one of metallurgic, electromagnetic, agricultural or cryogenic science pack in addition to all lower packs. The pack is chosen based on the most prevalent recipe-type (e.g. smelting for metallurgic science). "Any Planetary Science" adds all packs that apply based on recipes (and may need multiple), but not necessarily all of them. "All Planetary Science" combines the four into one "level".
 
-As is the case in the base game/Space Age, military and utility science can be ignored from producitivty technologies. They will still require these packs if the recipe-unlocking technology needs them (as is the strange case of coal-productivity, because coal synthesis is unlocked by rocket turrets).
+As is the case in the base game/Space Age, military and utility science can be ignored from productivity technologies. They will still require these packs if the recipe-unlocking technology needs them (as is the strange case of coal-productivity, because coal synthesis is unlocked by rocket turrets).
 
 Next, "adjust existing productivity technologies to follow the same progression" does exactly that.
 
-Internally, I exclude some items and recipes from generating techs, e.g., water, steam or the various circuit combinators. You can overwrite this setting by checking "Overwrite blacklist settings?" and provide your own, comma-separated list of items and recipes to be excluded.
+You can include or exclude some recipes or items from being considered by this mod with black- and whitelists.
+The whitelists ignores all other settings, like hidden recipes, non-intermediates and even the blacklists.
+If an item is on the whitelist, all of its recipes are included, even if other settings would prevent it. If you only want some recipes added, manually specify them in the recipe section.
 
 Lastly, you can specify which recipes will be considered by the mod. By default, only intermediates (i.e., all recipes that allow for productivity modules) are considered, but you can additionally include recipes for ammo, modules or tiles (landfill, concrete, etc.) or even the full list of recipes.
+If you're also using a mod that adds productivity to recipes, you can activate the option "Cache intermediates at the start?" to try to circumvent every item generating a tech, even when selecting "intermediates only". This is not 100% fool-proof and may require manual black- and whitelisting.
 
 
 # FAQ
