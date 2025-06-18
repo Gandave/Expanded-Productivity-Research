@@ -90,6 +90,12 @@ end
 
 function EPR.calculateFormulaBaseLinear(itemType, tier)
 	local max_tiers = EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1
+	if not EPR.setting["skip_military"][itemType] then
+		max_tiers = max_tiers + 1
+	end
+	if not EPR.setting["skip_utility"][itemType] then
+		max_tiers = max_tiers + 1
+	end
 	local infinite_base = EPR.setting["infinite_base"][itemType]
 	return EPR.roundBest(tier * infinite_base / max_tiers)
 end
