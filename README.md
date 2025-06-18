@@ -22,6 +22,8 @@ The second new feature is the ability to customize the scaling of costs for the 
 
 The third (minor) feature is that the mod now ignores outputs which are not affected by productivity (like filling and emptying barrels). Those technologies wouldn't have had an effect in the first place.
 
+Lastly, you can now change how much of a productivity increase each technology level gives.
+
 # Mod compatibility
 
 The generation of technologies is dynamic and should be flexible enough to be compatible with most mods right out of the gate. However, other mods might need to be flagged as optional dependencies if they add/change recipes in the final phase of initialization.
@@ -63,6 +65,8 @@ The cost factor and cost base determine the research cost formula, which is FACT
 The cost of non-infinite levels is based on the chosen progression. Linear scaling means that the numbers are simply interpolated between 0 and what the first "infinite" level of the technology costs. Exponential scaling starts slower and means larger increases later on, which is closer to the cost of many technologies in the base game. All numbers are rounded somewhat to make for cleaner numbers (e.g., 100 instead of 116). If a technology has fewer tiers, because it requires additional science packs for even the first level, the cost is analogous to what it would cost, if it didn't require any science packs at all. For example, by default, the automation+logistic tier costs 200, then 300 for chemical science, then 400 for production science. If an item requires production science to research, the first level starts with production science and requires 400, not just 200.
 
 Levels per tier can be used to generate more than one technology level before the next science pack is added. For example, you might have five levels requiring only automation science, then another five which require automation and logistic science followed by five level which additionally require chemical science, and so on. The cost of each level is a (rounded) linear interpolation between the previous and the next "tier".
+
+You can change how much bonus productivity each level provides. The default is 10%.
 
 Infinite tech and maximum level can be used to limit the maximum available technology level, since productivity is capped at 300% (barring other mods that change this). Or if you simply prefer to have a custom limit on the productivity gained by this mod.
 

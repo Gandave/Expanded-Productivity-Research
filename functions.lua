@@ -1479,7 +1479,7 @@ function EPR.adjustProductivityTechnology(technology, lowest_tech, special_scien
 		if effect and effect.type == "change-recipe-productivity" then
 			local item_type = "item"
 			local rec = data.raw["recipe"][effect.recipe]
-			if rec then
+			if rec and rec.results and #rec.results > 0 and rec.results[1] then
 				item_type = EPR.getItemType(EPR.getItem(rec.results[1].name))
 			end
 			effect.change = (EPR.setting["effect"][item_type] or 10) / 100
