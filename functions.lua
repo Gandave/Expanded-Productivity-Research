@@ -1,5 +1,7 @@
 EPR = {}
 
+EPR.blacklist_science_packs = { "fulgoran-cryogenics-progress" }
+
 function EPR.prefix(name)
     return "epr_" .. name
 end
@@ -33,6 +35,10 @@ EPR.setting = {
 	["formula_base"] = {
 		["item"] = settings.startup[EPR.prefix("formula_base")].value,
 		["science_pack"] = settings.startup[EPR.prefix("formula_base_science")].value
+	},
+	["formula_minimum"] = {
+		["item"] = settings.startup[EPR.prefix("formula_minimum")].value,
+		["science_pack"] = settings.startup[EPR.prefix("formula_minimum_science")].value
 	},
 	["infinite_base"] = {
 		["item"] = settings.startup[EPR.prefix("formula_factor")].value * settings.startup[EPR.prefix("formula_base")].value,
@@ -106,6 +112,12 @@ end
 
 function EPR.calculateFormulaBaseExponential(itemType, tier)
 	local max_tiers = EPR.constMaxNumberOfTiers[EPR.setting["maximum_science_pack"][itemType]] or 1
+	if not EPR.setting["skip_military"][itemType] then
+		max_tiers = max_tiers + 1
+	end
+	if not EPR.setting["skip_utility"][itemType] then
+		max_tiers = max_tiers + 1
+	end
 	local infinite_base = EPR.setting["infinite_base"][itemType]
 	return EPR.roundBest(infinite_base * EPR.setting["formula_factor"][itemType] ^ (tier - max_tiers))
 end
@@ -490,7 +502,7 @@ function EPR.isRecipeInScope(recipe, list_intermediates)
 	local item = recipe.results[1].name
 
 	if EPR.setting["choose_recipes"] == "all_but_equipment" then
-		if data.raw["roboport-equipment"][item] or data.raw["night-vision-equipment"][item] or data.raw["battery-equipment"][item] or data.raw["belt-immunity-equipment"][item] or data.raw["movement-bonus-equipment"][item] or data.raw["energy-shield-equipment"][item] or data.raw["active-defense-equipment"][item] or data.raw["generator-equipment"][item] or data.raw["inventory-bonus-equipment"][item] or data.raw["solar-panel-equipment"][item] then
+		if data.raw["roboport-equipment"][item] or data.raw["night-vision-equipment"][item] or data.raw["battery-equipment"][item] or data.raw["belt-immunity-equipment"][item] or data.raw["movement-bonus-equipment"][item] or data.raw["energy-shield-equipment"][item] or data.raw["active-defense-equipment"][item] or data.raw["generator-equipment"][item] or (data.raw["inventory-bonus-equipment"] and data.raw["inventory-bonus-equipment"][item]) or data.raw["solar-panel-equipment"][item] then
 			return false
 		end
 		if data.raw["locomotive"][item] or data.raw["cargo-wagon"][item] or data.raw["fluid-wagon"][item] or data.raw["car"][item] or data.raw["spider-vehicle"][item] or data.raw["artillery-wagon"][item] or data.raw["armor"][item] or data.raw["gun"][item] then
@@ -629,20 +641,22 @@ function EPR.addMissingSciencePacks(science_packs, tech)
 	local highest_level = -1
 	if technology and technology.unit and technology.unit.ingredients then -- if tech is regular technology
 		for _, val in pairs(technology.unit.ingredients) do
-			local level = EPR.getTechLevelFromSciencePack[val[1]] or -2
-			if level > highest_level then
-				highest_level = level
-				highest_science_pack = val[1]
-			elseif level == highest_level then
-				if type(highest_science_pack) == "table" then
-					if not EPR.listContains(highest_science_pack, val[1]) then
-						table.insert(highest_science_pack, val[1])
+			if not EPR.listContains(EPR.blacklist_science_packs, val[1]) then
+				local level = EPR.getTechLevelFromSciencePack[val[1]] or -2
+				if level > highest_level then
+					highest_level = level
+					highest_science_pack = val[1]
+				elseif level == highest_level then
+					if type(highest_science_pack) == "table" then
+						if not EPR.listContains(highest_science_pack, val[1]) then
+							table.insert(highest_science_pack, val[1])
+						end
+					elseif highest_science_pack ~= val[1] then
+						highest_science_pack = { highest_science_pack, val[1] }
 					end
-				elseif highest_science_pack ~= val[1] then
-					highest_science_pack = { highest_science_pack, val[1] }
 				end
+				science_packs[val[1]] = true
 			end
-			science_packs[val[1]] = true
 		end
 	elseif technology and technology.prerequisites then -- if tech is trigger-technology check prerequisites
 		for _, pre in pairs(technology.prerequisites) do
@@ -690,8 +704,8 @@ function EPR.calculateFormula(tier, num_tiers, itemType)
 	if not EPR.setting["skip_utility"][itemType] then
 		calc_tier = calc_tier + 1
 	end
-	local lower_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier)
-	local higher_base = EPR.setting["scaling_function"][itemType](itemType, calc_tier + 1)
+	local lower_base = math.max(EPR.setting["formula_minimum"][itemType], EPR.setting["scaling_function"][itemType](itemType, calc_tier))
+	local higher_base = math.max(EPR.setting["formula_minimum"][itemType], EPR.setting["scaling_function"][itemType](itemType, calc_tier + 1))
 	if tier + 1 == num_tiers then
 		higher_base = EPR.setting["infinite_base"][itemType]
 	end
@@ -1336,7 +1350,7 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 
 	-- landfill
 	if itemList["landfill"] then
-		EPR.combineGroupExcept(itemList, "landfill", data.raw["tile"], {"space-platform-foundation", "concrete", "foundation", "dect-concrete-grid"})
+		EPR.combineGroupExcept(itemList, "landfill", data.raw["tile"], {"space-platform-foundation", "concrete", "foundation", "dect-concrete-grid", "water"})
 		-- dectorio landscaping
 		EPR.combineItems(itemList, "landfill", "dect-base-dirt-1", "dect-base-dry-dirt", "dect-base-grass-1", "dect-base-red-desert-1", "dect-base-sand-1")
 		EPR.combineItems(itemList, "dect-base-water", "dect-base-deepwater", "dect-base-water-green", "dect-base-deepwater-green")

@@ -38,6 +38,13 @@ data:extend({
 		order = "a[regular]a[formula]b"
 	},
 	{
+		type = "int-setting",
+		name = "epr_formula_minimum",
+		setting_type = "startup",
+		default_value = 50,
+		order = "a[regular]a[formula]c"
+	},
+	{
 		type = "string-setting",
 		name = "epr_finite_tech_scaling",
 		setting_type = "startup",
@@ -124,6 +131,13 @@ data:extend({
 		setting_type = "startup",
 		default_value = 1000,
 		order = "b[science]a[formula]b"
+	},
+	{
+		type = "int-setting",
+		name = "epr_formula_minimum_science",
+		setting_type = "startup",
+		default_value = 50,
+		order = "b[science]a[formula]c"
 	},
 	{
 		type = "string-setting",
@@ -247,7 +261,7 @@ data:extend({
 		name = "epr_blacklist_item",
 		setting_type = "startup",
 		allow_blank = true,
-		default_value = "jellynut-seed,yumako-seed,cargo-landing-pad,arithmetic-combinator,decider-combinator,constant-combinator,power-switch,programmable-speaker,display-panel,selector-combinator",
+		default_value = "jellynut-seed,yumako-seed,cargo-landing-pad,arithmetic-combinator,decider-combinator,constant-combinator,power-switch,programmable-speaker,display-panel,selector-combinator,water,steam",
 		order = "d[further]m[blacklist]b"
 	},
 	{

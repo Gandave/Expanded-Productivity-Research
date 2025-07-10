@@ -1,6 +1,6 @@
 {
 	"name": "ExpandedProductivityResearch",
-	"version": "1.3.3",
+	"version": "1.3.6",
 	"title": "Expanded Productivity Research",
 	"author": "Gandave",
 	"factorio_version": "2.0",
@@ -13,7 +13,8 @@
 		"(?) Moshine",
 		"(?) secretas",
 		"(?) planet-muluna",
-		"(?) kry-inserters"
+		"(?) kry-inserters",
+		"(?) space-exploration"
 	],
 	"description": "Adds Productivity technologies for all intermediate recipes, grouped by output item, with a progression similar to mining productivity. Optionally adjusts existing techs' progression."
 }

@@ -1,4 +1,28 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.3.6
+Date: 10.07.2025
+  Minor Changes:
+    - Added water and steam to the default blacklist.
+	- Removed water recipes from landfill productivity.
+  Bugfixes:
+    - Fixed "Fulgoran cryogenic crafting process" appearing as a requirement for productivity research.
+	- Added Space Exploration dependency to hopefully prevent error on K2+SpEx games.
+
+---------------------------------------------------------------------------------------------------
+Version: 1.3.5
+Date: 30.06.2025
+  Minor Features:
+    - Added setting to set minimum science cost, as the costs can get ridiculously low if there are a lot of tiers/levels.
+  Bugfixes:
+    - Fixed error in calculation of exponential science pack costs if military and utility science are incuded.
+
+---------------------------------------------------------------------------------------------------
+Version: 1.3.4
+Date: 24.06.2025
+  Bugfixes:
+    - Fixed crash when playing without Space Age with the option "Everything but equipment" selected.
+
+---------------------------------------------------------------------------------------------------
 Version: 1.3.3
 Date: 18.06.2025
   Bugfixes:
