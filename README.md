@@ -38,12 +38,14 @@ New science packs or lab types will be ignored by default.
 - [Space Age Galore](https://mods.factorio.com/mod/space_age_galore)
 - [Various 5dim mods](https://mods.factorio.com/user/McGuten)
 - [Space Age without Space](https://mods.factorio.com/mod/SpaceAgeWithoutSpace)
+- [Cerys](https://mods.factorio.com/mod/Cerys-Moon-of-Fulgora)
 
 ## Partial compatibility (i.e., works, but does not make full use of all features) or to be checked
 - [Secretas & Frozeta](https://mods.factorio.com/mod/secretas)
 - [Moshine](https://mods.factorio.com/mod/Moshine)
 - [Muluna, Moon of Nauvis](https://mods.factorio.com/mod/planet-muluna)
-- [Cerys](https://mods.factorio.com/mod/Cerys-Moon-of-Fulgora)
+- [Krastorio 2](https://mods.factorio.com/mod/Krastorio2) - the progression of EPR clashes with K2's philosophy of early tech cards getting phased out later. It will work, but lead to research where you still need low-level tech cards for infinite research.
+- [Krastorio 2 Spaced Out](https://mods.factorio.com/mod/Krastorio2-spaced-out) - as K2, but additionally, it will crash with "Adjust existing productivity techs" active.
 
 ## Incompatible
 - none known

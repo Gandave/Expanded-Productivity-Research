@@ -1059,13 +1059,23 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	local existing_prod_techs = {}
 	local recipes_lowest_tech = {}
 	local recipes_enabled_at_start = {}
+	local item_with_existing_tech = {}
 	for tech_name, tech in pairs(data.raw["technology"]) do
 		if tech and tech.effects then
 			if not EPR.listContains(blacklist_techs, tech_name) then
+				local result_item, only_one_item
 				for _, effect in pairs(tech.effects) do
 					if effect.type == "change-recipe-productivity" then
 						local recipe = data.raw["recipe"][effect.recipe]
 						if recipe then
+							if recipe.results and recipe.results[1] and recipe.results[1].name then
+								if not result_item then
+									result_item = recipe.results[1].name
+									only_one_item = true
+								elseif result_item ~= recipe.results[1].name then
+									only_one_item = false
+								end
+							end
 							table.insert(exclude_recipe, recipe.name)
 							if existing_prod_techs[tech_name] then
 								table.insert(existing_prod_techs[tech_name].recipes, recipe.name)
@@ -1086,6 +1096,10 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 							recipes_enabled_at_start[recipe.name] = recipe.enabled ~= false
 						end
 					end
+				end
+				-- only if all recipes of this technology create the same item
+				if only_one_item and tech.name ~= "scrap-recycling-productivity" then
+					item_with_existing_tech[result_item] = tech
 				end
 			end
 		end
@@ -1410,21 +1424,31 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 					log("EPR: current item/fluid: "..item_name)
 				end
 
-				-- determine lowest necessary tech and build tech levels based on science pack progression
-				local lowest_tech
-				if not item_object.enabled_at_start then
-					lowest_tech = item_object.lowest_tech
-				end
+				if item_with_existing_tech[item_name] and EPR.setting["adjust_existing_techs"] then
+					local tech = item_with_existing_tech[item_name]
+					for _, effect in pairs(item_object.effects) do
+						table.insert(tech.effects, effect)
+					end
+					if EPR.setting["verbose"] then
+						log("> EPR: adding all recipes to existing technology "..EPR.toString(tech.name))
+					end
+				else
+					-- determine lowest necessary tech and build tech levels based on science pack progression
+					local lowest_tech
+					if not item_object.enabled_at_start then
+						lowest_tech = item_object.lowest_tech
+					end
 
-				local tech_levels = EPR.getTechLevels(item, lowest_tech, item_object.special_packs)
+					local tech_levels = EPR.getTechLevels(item, lowest_tech, item_object.special_packs)
 
-				for idx, tech_level in pairs(tech_levels) do
-					local next_tech = EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, idx, #tech_levels)
-					if next_tech then
-						if EPR.setting["verbose"] then
-							log("> EPR: adding level "..idx.." with "..EPR.toString(tech_level))
+					for idx, tech_level in pairs(tech_levels) do
+						local next_tech = EPR.createTechnologyForTechLevel(item, item_object, lowest_tech, tech_level, idx, #tech_levels)
+						if next_tech then
+							if EPR.setting["verbose"] then
+								log("> EPR: adding level "..idx.." with "..EPR.toString(tech_level))
+							end
+							table.insert(new_technologies, next_tech)
 						end
-						table.insert(new_technologies, next_tech)
 					end
 				end
 			else
@@ -1441,34 +1465,48 @@ function EPR.generateAllProductivityTechs(blacklist_techs, blacklist_products, b
 	if EPR.setting["adjust_existing_techs"] then
 		log("# EPR: adjusting existing technologies to same progression #")
 		for key, value in pairs(existing_prod_techs) do
+			local escaped_key = string.gsub(key, "%-", "%%-")
 			local tech = data.raw["technology"][key]
 			-- check if tech exists and is not already part of a progression
 			if tech
-					and not string.match(key, "-%d+$") -- end with a number, so most likely there's other similar technologies
+					and not string.match(escaped_key, "%-%d+$") -- end with a number, so most likely there's other similar technologies
 					and not data.raw["technology"][key.."-2"] then -- does not end with a number, so could be the first of a sequence ("-1" omitted)
-				if EPR.setting["verbose"] then
-					log("> EPR: adjusting "..key)
+				local ignore = false
+				-- one more check - see if there's a different tech with same name, but a different number present
+				for key2, val2 in pairs(existing_prod_techs) do
+					if key2 ~= key and string.match(key2, "^"..escaped_key.."%-%d+$") then
+						ignore = true
+					end
 				end
-				local lowest_tech
-				local special_science_packs = {}
-				if not value.enabled_at_start then
-					for _, val in pairs(value.recipes) do
-						local recipe = data.raw["recipe"][val]
-						if recipe then
-							local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
-							if sp then
-								local current = (special_science_packs[sp] or 0) + 1
-								special_science_packs[sp] = current
-							end
-							if not lowest_tech then
-								lowest_tech = recipes_lowest_tech[val]
-							else
-								lowest_tech = EPR.getLowestTech(recipes_lowest_tech[val], lowest_tech)
+				if EPR.setting["verbose"] then
+					if ignore then
+						log("> EPR: ignoring "..key.." because it's already part of a progression.")
+					else
+						log("> EPR: adjusting "..key)
+					end
+				end
+				if not ignore then
+					local lowest_tech
+					local special_science_packs = {}
+					if not value.enabled_at_start then
+						for _, val in pairs(value.recipes) do
+							local recipe = data.raw["recipe"][val]
+							if recipe then
+								local sp = EPR.convertRecipeCategoryToAdvancedSciencePack[recipe.category]
+								if sp then
+									local current = (special_science_packs[sp] or 0) + 1
+									special_science_packs[sp] = current
+								end
+								if not lowest_tech then
+									lowest_tech = recipes_lowest_tech[val]
+								else
+									lowest_tech = EPR.getLowestTech(recipes_lowest_tech[val], lowest_tech)
+								end
 							end
 						end
 					end
+					EPR.adjustProductivityTechnology(tech, lowest_tech, special_science_packs)
 				end
-				EPR.adjustProductivityTechnology(tech, lowest_tech, special_science_packs)
 			end
 		end
 	end
